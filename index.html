@@ -4107,6 +4107,99 @@ function updateAllRelationReferences(updatedChar) {
   }
 }
 
+async function addCharacterFromModal(game) {
+  saveTempData(game);
+  
+  let charName = '';
+  let gameData = {};
+  
+  if (game === 'ovenbreak') {
+    charName = tempCharData.ovenbreak.name;
+    gameData = tempCharData.ovenbreak;
+  } else if (game === 'kingdom') {
+    charName = tempCharData.kingdom.name;
+    gameData = tempCharData.kingdom;
+  } else if (game === 'tower') {
+    charName = tempCharData.tower.name;
+    gameData = tempCharData.tower;
+  }
+  
+  if (!charName) {
+    alert('Cookie name required!');
+    return;
+  }
+  
+  const isOfficial = document.getElementById('isOfficialModal').checked;
+  
+  if (isEditMode && editingCharacterId) {
+    const char = characters.find(c => c.id === editingCharacterId);
+    if (char) {
+      char.name = charName;
+      char.isOfficial = isOfficial;
+      
+      if (tempCharData.ovenbreak && tempCharData.ovenbreak.name) {
+        char.ovenbreak = tempCharData.ovenbreak;
+      }
+      if (tempCharData.kingdom && tempCharData.kingdom.name) {
+        char.kingdom = tempCharData.kingdom;
+      }
+      if (tempCharData.tower && tempCharData.tower.name) {
+        char.tower = tempCharData.tower;
+      }
+      
+      updateAllRelationReferences(char);
+      
+      await saveToLocalStorage();
+      
+      if (selectedChar && selectedChar.id === editingCharacterId) {
+        selectCharacter(editingCharacterId, game);
+      }
+      
+      filterCharacters(currentFilter);
+      closeUnifiedModal();
+      
+      alert('수정 완료!');
+      return;
+    }
+  }
+  
+  const newChar = {
+    id: Date.now(),
+    name: charName,
+    isOfficial: isOfficial,
+    relations: []
+  };
+  
+  if (tempCharData.ovenbreak && tempCharData.ovenbreak.name) {
+    newChar.ovenbreak = tempCharData.ovenbreak;
+  }
+  if (tempCharData.kingdom && tempCharData.kingdom.name) {
+    newChar.kingdom = tempCharData.kingdom;
+  }
+  if (tempCharData.tower && tempCharData.tower.name) {
+    newChar.tower = tempCharData.tower;
+  }
+  
+  characters.push(newChar);
+  
+  await saveToLocalStorage();
+  
+  filterCharacters(currentFilter);
+  closeUnifiedModal();
+  
+  clearForm('ovenbreak');
+  clearForm('kingdom');
+  clearForm('tower');
+  
+  tempCharData = {
+    ovenbreak: null,
+    kingdom: null,
+    tower: null
+  };
+  
+  alert('Added!');
+}
+
 let currentOriginFilter = 'all'; // 'all', 'oc', 'official'
 
 function setOriginFilter(filter) {
@@ -4120,6 +4213,8 @@ function setOriginFilter(filter) {
   
   filterCharacters(currentFilter);
 }
+
+
 
 </script>
 </body>
