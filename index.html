@@ -56,6 +56,7 @@ body {
   cursor: pointer;
   transition: all 0.3s;
   border: 2px solid #fde68a;
+  font-family: 'CookieRun';
 }
 
 .tab-btn:hover {
@@ -88,10 +89,37 @@ body {
   border: 3px solid #fbbf24;
 }
 
+
 .sidebar-header {
   padding: 20px 25px 15px;
   border-bottom: 3px dashed #fde68a;
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  position: relative;
+}
+
+.sidebar-edit-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #fb923c;
+  color: #fb923c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 20;
+}
+
+.sidebar-edit-btn:hover {
+  transform: rotate(15deg) scale(1.1);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
 }
 
 .sidebar-title {
@@ -1737,6 +1765,63 @@ input[type="color"]:hover {
   }
 }
 
+.sidebar-action-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: white;
+  border: 2px solid #fb923c;
+  color: #fb923c;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sidebar-action-btn:hover {
+  background: #fffbeb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.2);
+}
+
+.origin-filter-group {
+  display: flex;
+  background: white;
+  border: 2px solid #fde68a;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.origin-btn {
+  border: none;
+  background: white;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a16207;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'CookieRun';
+  border-right: 1px solid #fde68a;
+}
+
+.origin-btn:last-child {
+  border-right: none;
+}
+
+.origin-btn:hover {
+  background: #fff7ed;
+}
+
+.origin-btn.active {
+  background: #fb923c;
+  color: white;
+}
+
 </style>
 </head>
 
@@ -1890,18 +1975,29 @@ try {
   </div>
 
   <div class="main-card">
-    <div class="card-header">
-      <div class="card-title">캐릭터 목록</div>
-      <div class="character-count" id="characterCount">현재 0개</div>
-    </div>
+<div class="card-header">
+  <div class="card-title">캐릭터 목록</div>
+  <div class="character-count" id="characterCount">현재 0개</div>
+</div>
+<div style="padding: 12px 25px; background: #fffbeb; border-bottom: 3px solid #fde68a; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+  
+  <div style="display: flex; gap: 10px;">
+    <button class="tab-btn active" onclick="filterCharacters('all')">전체</button>
+    <button class="tab-btn" onclick="filterCharacters('ovenbreak')">🍪 오븐브레이크</button>
+    <button class="tab-btn" onclick="filterCharacters('kingdom')">👑 킹덤</button>
+    <button class="tab-btn" onclick="filterCharacters('tower')">🗼 모험의 탑</button>
+  </div>
 
-    <div style="padding: 12px 25px; background: #fffbeb; border-bottom: 3px solid #fde68a; display: flex; gap: 10px;">
-      <button class="tab-btn active" onclick="filterCharacters('all')">전체</button>
-      <button class="tab-btn" onclick="filterCharacters('ovenbreak')">🍪 오븐브레이크</button>
-      <button class="tab-btn" onclick="filterCharacters('kingdom')">👑 킹덤</button>
-      <button class="tab-btn" onclick="filterCharacters('tower')">🗼 모험의 탑</button>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 0.8rem; font-weight: 700; color: #a16207; font-family: 'CookieRun';">📂 분류:</span>
+    <div class="origin-filter-group">
+      <button class="origin-btn active" onclick="setOriginFilter('all')">전체</button>
+      <button class="origin-btn" onclick="setOriginFilter('oc')">OC</button>
+      <button class="origin-btn" onclick="setOriginFilter('official')">공식</button>
     </div>
-
+  </div>
+  
+</div>
     <div class="card-content">
       <button class="add-character-btn" onclick="openModal()">
         <i class="fa-solid fa-plus"></i>
@@ -1978,19 +2074,20 @@ try {
       </button>
     </div>
 
-    <div style="padding: 20px 30px 0; background: #fffbeb; border-bottom: 2px solid #fde68a;">
-      <div style="display: flex; gap: 10px;">
-        <button class="modal-tab-btn active" onclick="switchModalTab('ovenbreak')">
-          오븐브레이크
-        </button>
-        <button class="modal-tab-btn" onclick="switchModalTab('kingdom')">
-          킹덤
-        </button>
-        <button class="modal-tab-btn" onclick="switchModalTab('tower')">
-          모험의 탑
-        </button>
-      </div>
-    </div>
+<div style="padding: 20px 30px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fde68a;">
+  
+  <div id="modalTabs" style="display: flex; gap: 10px;">
+    <button type="button" class="modal-tab-btn active" onclick="switchModalTab('ovenbreak')" style="font-family: 'CookieRun';">오븐브레이크</button>
+    <button type="button" class="modal-tab-btn" onclick="switchModalTab('kingdom')" style="font-family: 'CookieRun';">킹덤</button>
+    <button type="button" class="modal-tab-btn" onclick="switchModalTab('tower')" style="font-family: 'CookieRun';">모험의 탑</button>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 6px; font-family: 'CookieRun'; white-space: nowrap;">
+    <input type="checkbox" id="isOfficialModal" style="width: 15px; height: 15px; cursor: pointer; margin: 0;">
+    <label for="isOfficialModal" style="font-size: 0.85rem; font-weight: 800; color: #92400e; cursor: pointer; margin: 0; line-height: 1;">공식 캐릭터</label>
+  </div>
+
+</div>
 
 <div id="formOvenbreak" class="modal-form-page active">
   <div class="modal-body">
@@ -2009,6 +2106,7 @@ try {
             <label>쿠키 이름</label>
             <input id="charNameModal" placeholder="예: 용감한쿠키" />
           </div>
+
           <div class="form-group">
             <label>등급</label>
             <select id="gradeModal">
@@ -2310,7 +2408,7 @@ function debugLog(message, isError) {
 
 const SHARED_PASSWORD = "noncookie5369";
 
-async function checkPassword() {
+window.checkPassword = async function() {
   const input = document.getElementById('passwordInput').value;
   const errorMsg = document.getElementById('errorMessage');
   
@@ -2604,16 +2702,26 @@ function filterCharacters(filter) {
   else if (filter === 'kingdom') filterBtns[2].classList.add('active');
   else if (filter === 'tower') filterBtns[3].classList.add('active');
   
-  let filteredCharacters = characters;
-  
-  if (filter !== 'all') {
-    filteredCharacters = characters.filter(char => {
-      if (filter === 'ovenbreak') return char.ovenbreak;
-      if (filter === 'kingdom') return char.kingdom;
-      if (filter === 'tower') return char.tower;
-      return false;
-    });
-  }
+let filteredCharacters = characters.filter(char => {
+
+    let gameMatch = false;
+    if (filter === 'all') gameMatch = true;
+    else if (filter === 'ovenbreak') gameMatch = char.ovenbreak;
+    else if (filter === 'kingdom') gameMatch = char.kingdom;
+    else if (filter === 'tower') gameMatch = char.tower;
+    
+
+    let originMatch = true;
+    const isOfficial = char.isOfficial === true; // 데이터에 저장된 값 확인
+    
+    if (currentOriginFilter === 'oc') {
+      originMatch = !isOfficial;
+    } else if (currentOriginFilter === 'official') {
+      originMatch = isOfficial;
+    }
+    
+    return gameMatch && originMatch;
+  });
   
   document.getElementById('characterCount').textContent = `현재 ${filteredCharacters.length}개`;
   
@@ -2862,6 +2970,14 @@ function selectCharacter(id, game) {
   const gameData = char[game];
   const color = gameData.color || '#fb923c';
   
+  // 1. 기존 사이드바 헤더 가져오기
+  const sidebarHeader = document.querySelector('#charactersPage .sidebar-header');
+  
+  // 2. [신규] 기존에 있던 편집 버튼 제거 (중복 방지)
+  const existingBtn = sidebarHeader.querySelector('.sidebar-edit-btn');
+  if (existingBtn) existingBtn.remove();
+  
+  // 3. 사진 박스 업데이트
   const photoBox = document.getElementById('selectedPhoto');
   if (gameData.photo) {
     photoBox.innerHTML = `<img src="${gameData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
@@ -2872,12 +2988,40 @@ function selectCharacter(id, game) {
   photoBox.style.borderColor = gameData.color;
   photoBox.style.boxShadow = `0 4px 12px ${gameData.color}50`;
   
-  const sidebarHeader = document.querySelector('#charactersPage .sidebar-header');
+  // 4. 헤더 스타일 업데이트
   if (sidebarHeader) {
     sidebarHeader.style.background = isLightColor(color) 
       ? `linear-gradient(135deg, ${darkenColor(color, 0.2)} 0%, ${darkenColor(color, 0.15)} 100%)`
       : `${color}20`;
     sidebarHeader.style.borderBottomColor = color;
+
+    // 5. [신규] 동그란 편집 버튼 생성 및 추가
+    const editBtn = document.createElement('button');
+    editBtn.className = 'sidebar-edit-btn';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    editBtn.title = '정보 및 사진 수정';
+    
+    // 색상 적용
+    editBtn.style.borderColor = color;
+    editBtn.style.color = color;
+    
+    // 호버 효과를 위한 이벤트
+    editBtn.onmouseenter = function() {
+      this.style.background = color;
+      this.style.color = 'white';
+    };
+    editBtn.onmouseleave = function() {
+      this.style.background = 'white';
+      this.style.color = color;
+    };
+    
+    // 클릭 이벤트
+    editBtn.onclick = function(e) {
+      e.stopPropagation(); // 이벤트 버블링 방지
+      openEditCharacterModal(selectedChar.id, game);
+    };
+    
+    sidebarHeader.appendChild(editBtn);
   }
   
   const sidebarCard = document.querySelector('#charactersPage .sidebar-card');
@@ -2897,16 +3041,16 @@ function selectCharacter(id, game) {
       : `${color}25`;
   }
   
-
   updateSettingsArea(char, gameData);
 }
 
-
 function renderSidebarInfo(game, data) {
   const color = data.color || '#fb923c';
-  
+
+let infoContent = '';
+
   if (game === 'ovenbreak') {
-    return `
+    infoContent = `
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label" style="color: ${color}; filter: brightness(0.7);">이름</div>
@@ -2935,7 +3079,7 @@ function renderSidebarInfo(game, data) {
       </div>
     `;
   } else if (game === 'kingdom') {
-    return `
+    infoContent = `
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label" style="color: ${color}; filter: brightness(0.7);">이름</div>
@@ -2964,7 +3108,7 @@ function renderSidebarInfo(game, data) {
       </div>
     `;
   } else if (game === 'tower') {
-    return `
+    infoContent = `
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label" style="color: ${color}; filter: brightness(0.7);">이름</div>
@@ -2993,8 +3137,9 @@ function renderSidebarInfo(game, data) {
       </div>
     `;
   }
-}
 
+  return infoContent;
+}
 
 function updateSettingsArea(char, gameData) {
   const settingsArea = document.getElementById('selectedSettings');
@@ -3059,25 +3204,80 @@ function selectRelationCharacter(id, event) {
 let currentModalGame = 'ovenbreak';
 
 function openModal() {
+  isEditMode = false;
+  editingCharacterId = null;
   currentModalGame = 'ovenbreak';
+  
+  document.querySelectorAll('.btn-create').forEach(btn => btn.textContent = '추가');
+  document.querySelector('.modal-title').innerHTML = '🍪 새 쿠키 추가';
+  
   switchModalTab('ovenbreak');
   document.getElementById('modalUnified').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
-function closeUnifiedModal() {
-  document.getElementById('modalUnified').classList.remove('active');
-  document.body.style.overflow = '';
+function openModal() {
+  isEditMode = false;
+  editingCharacterId = null;
+  currentModalGame = 'ovenbreak';
   
   tempCharData = {
-    ovenbreak: {},
-    kingdom: {},
-    tower: {}
+    ovenbreak: null,
+    kingdom: null,
+    tower: null
   };
   
-  clearForm('ovenbreak');
-  clearForm('kingdom');
-  clearForm('tower');
+  document.querySelectorAll('.btn-create').forEach(btn => btn.textContent = '추가');
+  document.querySelector('.modal-title').innerHTML = '🍪 새 쿠키 추가';
+  
+  // 오븐브레이크 폼 초기화
+  document.getElementById('charNameModal').value = '';
+  document.getElementById('gradeModal').value = '커먼';
+  document.getElementById('petModal').value = '';
+  document.getElementById('treasureModal').value = '';
+  document.getElementById('abilityModal').value = '';
+  document.getElementById('tagsModal').value = '';
+  document.getElementById('charColorModal').value = '#fb923c';
+  document.getElementById('isOfficialModal').checked = false;
+  
+  const preview = document.getElementById('createPhotoPreviewModal');
+  preview.style.display = 'none';
+  preview.src = '';
+  preview.parentElement.querySelector('span').style.display = 'flex';
+  
+  // 킹덤 폼 초기화
+  document.getElementById('charNameKingdom').value = '';
+  document.getElementById('gradeKingdom').value = '커먼';
+  document.getElementById('typeKingdom').value = '돌격형';
+  document.getElementById('positionKingdom').value = '전방';
+  document.getElementById('elementKingdom').value = '불';
+  document.getElementById('skillNameKingdom').value = '';
+  document.getElementById('traitKingdom').value = '';
+  document.getElementById('charColorKingdom').value = '#fb923c'; // 이 줄 추가!
+  
+  const previewKingdom = document.getElementById('createPhotoPreviewKingdom');
+  previewKingdom.style.display = 'none';
+  previewKingdom.src = '';
+  previewKingdom.parentElement.querySelector('span').style.display = 'flex';
+  
+  // 타워 폼 초기화
+  document.getElementById('charNameTower').value = '';
+  document.getElementById('gradeTower').value = '커먼';
+  document.getElementById('roleTower').value = '스트라이커';
+  document.getElementById('typeTower').value = '타격형';
+  document.getElementById('elementTower').value = '물';
+  document.getElementById('skillNameTower').value = '';
+  document.getElementById('artifactTower').value = '';
+  document.getElementById('charColorTower').value = '#fb923c'; // 이 줄 추가!
+  
+  const previewTower = document.getElementById('createPhotoPreviewTower');
+  previewTower.style.display = 'none';
+  previewTower.src = '';
+  previewTower.parentElement.querySelector('span').style.display = 'flex';
+  
+  switchModalTab('ovenbreak');
+  document.getElementById('modalUnified').classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 
 function switchModalTab(game) {
@@ -3147,7 +3347,7 @@ function saveTempData(game) {
 }
 
 function restoreTempData(game) {
-  if (game === 'ovenbreak' && tempCharData.ovenbreak.name) {
+  if (game === 'ovenbreak' && tempCharData.ovenbreak && tempCharData.ovenbreak.name) {
     document.getElementById('charNameModal').value = tempCharData.ovenbreak.name;
     document.getElementById('gradeModal').value = tempCharData.ovenbreak.grade || '커먼';
     document.getElementById('petModal').value = tempCharData.ovenbreak.pet || '';
@@ -3162,7 +3362,7 @@ function restoreTempData(game) {
       preview.style.display = 'block';
       preview.parentElement.querySelector('span').style.display = 'none';
     }
-  } else if (game === 'kingdom' && tempCharData.kingdom.name) {
+  } else if (game === 'kingdom' && tempCharData.kingdom && tempCharData.kingdom.name) {
     document.getElementById('charNameKingdom').value = tempCharData.kingdom.name;
     document.getElementById('gradeKingdom').value = tempCharData.kingdom.grade || '커먼';
     document.getElementById('typeKingdom').value = tempCharData.kingdom.type || '돌격형';
@@ -3178,7 +3378,7 @@ function restoreTempData(game) {
       preview.style.display = 'block';
       preview.parentElement.querySelector('span').style.display = 'none';
     }
-  } else if (game === 'tower' && tempCharData.tower.name) {
+  } else if (game === 'tower' && tempCharData.tower && tempCharData.tower.name) {
     document.getElementById('charNameTower').value = tempCharData.tower.name;
     document.getElementById('gradeTower').value = tempCharData.tower.grade || '커먼';
     document.getElementById('roleTower').value = tempCharData.tower.role || '스트라이커';
@@ -3209,68 +3409,6 @@ function previewCreatePhoto(input, game) {
     };
     reader.readAsDataURL(input.files[0]);
   }
-}
-
-async function addCharacterFromModal() {
-  saveTempData(currentModalGame);
-  
-  const name = tempCharData.ovenbreak.name || tempCharData.kingdom.name || tempCharData.tower.name;
-  
-  if (!name) {
-    alert('최소 하나의 작품에 캐릭터 이름을 입력해주세요!');
-    return;
-  }
-  
-  const newChar = {
-    id: Date.now(),
-    name: name,
-    relations: []
-  };
-  
-  if (tempCharData.ovenbreak.name) {
-    newChar.ovenbreak = {
-      grade: tempCharData.ovenbreak.grade || '커먼',
-      pet: tempCharData.ovenbreak.pet || '',
-      treasure: tempCharData.ovenbreak.treasure || '',
-      ability: tempCharData.ovenbreak.ability || '',
-      tags: tempCharData.ovenbreak.tags || '',
-      color: tempCharData.ovenbreak.color || '#fb923c',
-      photo: tempCharData.ovenbreak.photo || ''
-    };
-  }
-  
-  if (tempCharData.kingdom.name) {
-    newChar.kingdom = {
-      grade: tempCharData.kingdom.grade || '커먼',
-      type: tempCharData.kingdom.type || '돌격형',
-      position: tempCharData.kingdom.position || '전방',
-      element: tempCharData.kingdom.element || '불',
-      skillName: tempCharData.kingdom.skillName || '',
-      trait: tempCharData.kingdom.trait || '',
-      color: tempCharData.kingdom.color || '#fb923c',
-      photo: tempCharData.kingdom.photo || ''
-    };
-  }
-  
-  if (tempCharData.tower.name) {
-    newChar.tower = {
-      grade: tempCharData.tower.grade || '커먼',
-      role: tempCharData.tower.role || '스트라이커',
-      type: tempCharData.tower.type || '타격형',
-      element: tempCharData.tower.element || '물',
-      skillName: tempCharData.tower.skillName || '',
-      artifact: tempCharData.tower.artifact || '',
-      color: tempCharData.tower.color || '#fb923c',
-      photo: tempCharData.tower.photo || ''
-    };
-  }
-  
-  characters.push(newChar);
-  
-await saveToLocalStorage();
-filterCharacters(currentFilter);
-closeUnifiedModal();
-  
 }
 
 function clearForm(game) {
@@ -3845,6 +3983,142 @@ function setupRealtimeSync() {
     debugLog('❌ 동기화 설정 실패: ' + error.message, true);
     setTimeout(setupRealtimeSync, 5000);
   }
+}
+
+let isEditMode = false;
+let editingCharacterId = null;
+
+function openEditCharacterModal(charId, game) {
+  const char = characters.find(c => c.id === charId);
+  if (!char) return;
+
+  isEditMode = true;
+  editingCharacterId = charId;
+  currentModalGame = game;
+
+  document.querySelectorAll('.btn-create').forEach(btn => btn.textContent = '수정 완료');
+  document.querySelector('.modal-title').innerHTML = '🍪 정보 수정';
+
+  tempCharData = {
+    ovenbreak: char.ovenbreak ? { ...char.ovenbreak } : null,
+    kingdom: char.kingdom ? { ...char.kingdom } : null,
+    tower: char.tower ? { ...char.tower } : null
+  };
+
+  document.getElementById('isOfficialModal').checked = char.isOfficial || false;
+
+  if (char.ovenbreak) {
+    document.getElementById('charNameModal').value = char.ovenbreak.name || char.name || '';
+    document.getElementById('gradeModal').value = char.ovenbreak.grade || '커먼';
+    document.getElementById('petModal').value = char.ovenbreak.pet || '';
+    document.getElementById('treasureModal').value = char.ovenbreak.treasure || '';
+    document.getElementById('abilityModal').value = char.ovenbreak.ability || '';
+    document.getElementById('tagsModal').value = char.ovenbreak.tags || '';
+    document.getElementById('charColorModal').value = char.ovenbreak.color || '#fb923c';
+    
+    const preview = document.getElementById('createPhotoPreviewModal');
+    if (char.ovenbreak.photo) {
+      preview.src = char.ovenbreak.photo;
+      preview.style.display = 'block';
+      preview.parentElement.querySelector('span').style.display = 'none';
+    } else {
+      preview.style.display = 'none';
+      preview.parentElement.querySelector('span').style.display = 'flex';
+    }
+  }
+
+  if (char.kingdom) {
+    document.getElementById('charNameKingdom').value = char.kingdom.name || char.name || '';
+    document.getElementById('gradeKingdom').value = char.kingdom.grade || '커먼';
+    document.getElementById('typeKingdom').value = char.kingdom.type || '돌격형';
+    document.getElementById('positionKingdom').value = char.kingdom.position || '전방';
+    document.getElementById('elementKingdom').value = char.kingdom.element || '불';
+    document.getElementById('skillNameKingdom').value = char.kingdom.skillName || '';
+    document.getElementById('traitKingdom').value = char.kingdom.trait || '';
+    document.getElementById('charColorKingdom').value = char.kingdom.color || '#fb923c';
+    
+    const preview = document.getElementById('createPhotoPreviewKingdom');
+    if (char.kingdom.photo) {
+      preview.src = char.kingdom.photo;
+      preview.style.display = 'block';
+      preview.parentElement.querySelector('span').style.display = 'none';
+    } else {
+      preview.style.display = 'none';
+      preview.parentElement.querySelector('span').style.display = 'flex';
+    }
+  }
+
+  if (char.tower) {
+    document.getElementById('charNameTower').value = char.tower.name || char.name || '';
+    document.getElementById('gradeTower').value = char.tower.grade || '커먼';
+    document.getElementById('roleTower').value = char.tower.role || '스트라이커';
+    document.getElementById('typeTower').value = char.tower.type || '타격형';
+    document.getElementById('elementTower').value = char.tower.element || '물';
+    document.getElementById('skillNameTower').value = char.tower.skillName || '';
+    document.getElementById('artifactTower').value = char.tower.artifact || '';
+    document.getElementById('charColorTower').value = char.tower.color || '#fb923c';
+    
+    const preview = document.getElementById('createPhotoPreviewTower');
+    if (char.tower.photo) {
+      preview.src = char.tower.photo;
+      preview.style.display = 'block';
+      preview.parentElement.querySelector('span').style.display = 'none';
+    } else {
+      preview.style.display = 'none';
+      preview.parentElement.querySelector('span').style.display = 'flex';
+    }
+  }
+
+  switchModalTab(game);
+  document.getElementById('modalUnified').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeUnifiedModal() {
+  document.getElementById('modalUnified').classList.remove('active');
+  document.body.style.overflow = '';
+  isEditMode = false;
+  editingCharacterId = null;
+}
+
+function updateAllRelationReferences(updatedChar) {
+  let hasChanges = false;
+
+  characters.forEach(char => {
+    if (!char.relations) return;
+
+    char.relations.forEach(rel => {
+      if (rel.targetId === updatedChar.id) {
+        rel.targetName = updatedChar.name;
+        
+        let targetData = updatedChar.ovenbreak || updatedChar.kingdom || updatedChar.tower;
+        
+        if (targetData) {
+          rel.targetColor = targetData.color;
+          rel.targetPhoto = targetData.photo;
+        }
+        hasChanges = true;
+      }
+    });
+  });
+
+  if (hasChanges) {
+    console.log('🔄 관계 데이터 동기화 완료');
+  }
+}
+
+let currentOriginFilter = 'all'; // 'all', 'oc', 'official'
+
+function setOriginFilter(filter) {
+  currentOriginFilter = filter;
+  
+  document.querySelectorAll('.origin-btn').forEach(btn => btn.classList.remove('active'));
+  const buttons = document.querySelectorAll('.origin-btn');
+  if(filter === 'all') buttons[0].classList.add('active');
+  if(filter === 'oc') buttons[1].classList.add('active');
+  if(filter === 'official') buttons[2].classList.add('active');
+  
+  filterCharacters(currentFilter);
 }
 
 </script>
