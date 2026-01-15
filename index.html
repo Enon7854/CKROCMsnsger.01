@@ -236,9 +236,10 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 15px;
+  flex-wrap: wrap; 
+  justify-content: flex-start;
+  align-content: flex-start;
+  gap: 20px;
 }
 
 .main-card {
@@ -362,7 +363,6 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   width: 420px;
-  max-width: calc(100% - 50px);
   display: flex;
   overflow: visible;
 }
@@ -1062,13 +1062,45 @@ input[type="color"]:hover {
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   border: 2px solid #fde68a;
   border-radius: 15px;
-  padding: 20px;
+  padding: 10px;
   margin-bottom: 15px;
   transition: all 0.2s;
 }
 
 .relationship-card:hover {
   transform: translateY(-2px);
+}
+
+.relationship-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: white;
+  color: #f97316;
+  border: 2px solid #fb923c;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(146, 64, 14, 0.2);
+  opacity: 0;
+  z-index: 10;
+}
+
+.relationship-card:hover .relationship-delete-btn {
+  opacity: 1;
+}
+
+.relationship-delete-btn:hover {
+  background: #f97316;
+  color: white;
+  transform: scale(1.15) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.4);
 }
 
 .relationship-header {
@@ -1081,14 +1113,14 @@ input[type="color"]:hover {
 }
 
 .relationship-target-photo {
-  width: 60px;
-  height: 60px;
+  width: 90px;
+  height: 90px;
   border-radius: 12px;
   background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 2.5rem;
   border: 3px solid #fb923c;
   flex-shrink: 0;
   overflow: hidden;
@@ -1686,11 +1718,21 @@ input[type="color"]:hover {
     height: 60px;
   }
   
-  #allRelationsPage .filter-btn {
-    font-size: 0.75rem;
-    padding: 5px 10px;
-  }
-  
+
+#allRelationsPage .main-card {
+  flex: none !important;
+  width: 340px !important;
+  min-width: 0 !important; 
+}
+
+#allRelationsPage .sidebar-card:last-child {
+  width: auto !important;
+  flex: 1 !important;
+  border-radius: 25px;
+  background: white;
+  box-shadow: 0 8px 24px rgba(146, 64, 14, 0.15);
+  border: 3px solid #fbbf24;
+}
   .relation-node {
     width: 60px;
     height: 60px;
@@ -2536,14 +2578,39 @@ async function saveToLocalStorage() {
     
     debugLog('💾 로컬 저장 완료: ' + characters.length + '개', false);
     
-    if (window.firebaseDB && window.firebaseDoc && window.firebaseSetDoc) {
-      const docRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'shared_data');
-      await window.firebaseSetDoc(docRef, {
-        characters: characters,
+if (window.firebaseDB && window.firebaseDoc && window.firebaseSetDoc) {
+  const CHUNK_SIZE = characters.length > 100 ? 1 : (characters.length > 50 ? 2 : 3);
+  const chunks = [];
+      
+      for (let i = 0; i < characters.length; i += CHUNK_SIZE) {
+        chunks.push(characters.slice(i, i + CHUNK_SIZE));
+      }
+      
+      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
+      await window.firebaseSetDoc(metaDocRef, {
+        totalCharacters: characters.length,
+        totalChunks: chunks.length,
         lastUpdated: new Date().toISOString()
       });
-      debugLog('✅ Firebase 저장 완료! (' + characters.length + '개)', false);
-      console.log('✅ Firebase 저장 완료! (' + characters.length + '개)');
+      
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
+        await window.firebaseSetDoc(chunkDocRef, {
+          characters: chunks[i],
+          chunkIndex: i,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      
+      try {
+        const oldDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'shared_data');
+        await window.firebaseSetDoc(oldDocRef, { deprecated: true, message: '새로운 청크 방식으로 마이그레이션됨' });
+      } catch (e) {
+        // 무시
+      }
+      
+      debugLog('✅ Firebase 저장 완료! (' + characters.length + '개, ' + chunks.length + '개 청크)', false);
+      console.log('✅ Firebase 저장 완료! (' + characters.length + '개, ' + chunks.length + '개 청크)');
     } else {
       debugLog('⚠️ Firebase 사용 불가, 로컬만 저장', true);
       console.log('⚠️ Firebase 사용 불가, 로컬스토리지만 저장');
@@ -2556,94 +2623,32 @@ async function saveToLocalStorage() {
   }
 }
 
-async function loadFromLocalStorage() {
-  try {
-    debugLog('📂 데이터 불러오는 중...', false);
-    console.log('📂 데이터 불러오는 중...');
-    
-    if (window.firebaseDB && window.firebaseDoc && window.firebaseGetDoc) {
-      debugLog('🔥 Firebase에서 데이터 가져오는 중...', false);
-      
-      const docRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'shared_data');
-      const docSnap = await window.firebaseGetDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const firebaseCharacters = data.characters || [];
-        
-        debugLog('✅ Firebase에서 데이터 불러옴: ' + firebaseCharacters.length + '개', false);
-        console.log('✅ Firebase에서 데이터 불러옴:', firebaseCharacters.length + '개');
-        
-        const saved = localStorage.getItem('cookierun_characters');
-        const localCharacters = saved ? JSON.parse(saved) : [];
-        
-        debugLog('📱 로컬 데이터: ' + localCharacters.length + '개', false);
-        
-        if (firebaseCharacters.length > 0) {
-          characters = firebaseCharacters;
-          localStorage.setItem('cookierun_characters', JSON.stringify(characters));
-          debugLog('✅ Firebase 데이터 사용 (' + firebaseCharacters.length + '개)', false);
-        } else if (localCharacters.length > 0) {
-          characters = localCharacters;
-          debugLog('⚠️ Firebase 비어있음, 로컬 데이터 사용 (' + localCharacters.length + '개)', true);
-        } else {
-          characters = [];
-          debugLog('ℹ️ 데이터 없음 (신규 사용자)', false);
+function compressImage(file, maxWidth = 300, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
         }
-        
-        return;
-      } else {
-        debugLog('⚠️ Firebase에 데이터 없음, 로컬 확인 중...', true);
-        console.log('⚠️ Firebase에 데이터 없음');
-        
-        const saved = localStorage.getItem('cookierun_characters');
-        if (saved) {
-          const localCharacters = JSON.parse(saved);
-          if (localCharacters.length > 0) {
-            debugLog('📤 로컬 데이터를 Firebase에 업로드 중...', false);
-            
-            if (window.firebaseSetDoc) {
-              await window.firebaseSetDoc(docRef, {
-                characters: localCharacters,
-                lastUpdated: new Date().toISOString()
-              });
-              
-              debugLog('✅ Firebase 업로드 완료: ' + localCharacters.length + '개', false);
-              console.log('✅ Firebase 업로드 완료:', localCharacters.length + '개');
-            }
-            
-            characters = localCharacters;
-            return;
-          }
-        }
-      }
-    } else {
-      debugLog('⚠️ Firebase 사용 불가', true);
-    }
-    
-    const saved = localStorage.getItem('cookierun_characters');
-    if (saved) {
-      characters = JSON.parse(saved);
-      debugLog('✅ 로컬스토리지에서 데이터 불러옴: ' + characters.length + '개', false);
-      console.log('✅ 로컬스토리지에서 데이터 불러옴:', characters.length + '개');
-    } else {
-      characters = [];
-      debugLog('ℹ️ 저장된 데이터 없음 (신규 사용자)', false);
-      console.log('ℹ️ 저장된 데이터 없음');
-    }
-  } catch (e) {
-    debugLog('❌ 불러오기 중 오류: ' + e.message, true);
-    console.error('❌ 불러오기 중 오류 발생:', e);
-    
-    const saved = localStorage.getItem('cookierun_characters');
-    if (saved) {
-      characters = JSON.parse(saved);
-      debugLog('⚠️ 오류 발생, 로컬스토리지 사용: ' + characters.length + '개', true);
-      console.log('⚠️ 오류 발생, 로컬스토리지 사용');
-    } else {
-      characters = [];
-    }
-  }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    };
+  });
 }
 
 function getElementEmoji(element) {
@@ -2942,12 +2947,13 @@ function renderRelationCharCard(char) {
   const firstGame = games[0];
   const color = firstGame.data.color || '#fb923c';
   
-  return `
+return `
     <div class="relation-char-card" 
          onclick="selectRelationCharacter(${char.id}, event)" 
-         onmouseover="this.style.borderColor='${color}'; this.style.background='${isLightColor(color) ? darkenColor(color, 0.2) : color}20'; this.style.boxShadow='0 6px 20px ${color}60';" 
-         onmouseout="this.style.borderColor='${color}80'; this.style.background='${isLightColor(color) ? darkenColor(color, 0.3) : color}15'; this.style.boxShadow='none';"
-         style="border-color: ${color}80; background: ${isLightColor(color) ? darkenColor(color, 0.3) : color}15;">
+         onmouseover="this.style.borderColor='${color}'; this.style.boxShadow='0 8px 24px ${color}50';" 
+         onmouseout="this.style.borderColor='${color}'; this.style.boxShadow='0 4px 12px ${color}30';"
+         style="background: linear-gradient(135deg, ${isLightColor(color) ? darkenColor(color, 0.3) : color + '20'} 0%, ${isLightColor(color) ? darkenColor(color, 0.2) : color + '10'} 100%); 
+                border-color: ${color}; box-shadow: 0 4px 12px ${color}30;">
       <div class="relation-char-photo" style="background: ${color}; border-color: ${color};">
         ${firstGame.data.photo ? `<img src="${firstGame.data.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : '🍪'}
       </div>
@@ -3397,17 +3403,22 @@ function restoreTempData(game) {
   }
 }
 
-function previewCreatePhoto(input, game) {
+async function previewCreatePhoto(input, game) {
   const suffix = game === 'ovenbreak' ? 'Modal' : game.charAt(0).toUpperCase() + game.slice(1);
   const preview = document.getElementById('createPhotoPreview' + suffix);
+  
   if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
+    try {
+      const compressedDataUrl = await compressImage(input.files[0]);
+      
+      preview.src = compressedDataUrl;
       preview.style.display = 'block';
       preview.parentElement.querySelector('span').style.display = 'none';
-    };
-    reader.readAsDataURL(input.files[0]);
+      
+    } catch (e) {
+      console.error("이미지 압축 실패", e);
+      alert("이미지 처리 중 오류가 발생했습니다.");
+    }
   }
 }
 
@@ -3471,56 +3482,105 @@ async function deleteCharacter(event, id) {
   
   characters = characters.filter(c => c.id !== id);
   
+  characters.forEach(char => {
+    if (char.relations) {
+      char.relations = char.relations.filter(rel => rel.targetId !== id);
+    }
+  });
+
   await saveToLocalStorage();
-  
-  if (selectedChar && selectedChar.id === id) {
-    selectedChar = null;
-    
-    const photoBox = document.getElementById('selectedPhoto');
-    photoBox.innerHTML = '🍪';
-    photoBox.style.background = 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)';
-    photoBox.style.borderColor = '#fb923c';
-    photoBox.style.boxShadow = '0 4px 12px rgba(251, 146, 60, 0.3)';
-    
-    const sidebarHeader = document.querySelector('#charactersPage .sidebar-header');
-    if (sidebarHeader) {
-      sidebarHeader.style.background = 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)';
-      sidebarHeader.style.borderBottomColor = '#fde68a';
-    }
-    
-    const sidebarCard = document.querySelector('#charactersPage .sidebar-card');
-    if (sidebarCard) {
-      sidebarCard.style.borderColor = '#fbbf24';
-    }
-    
-    const infoSection = document.getElementById('selectedInfoSection');
-    infoSection.innerHTML = '<div style="text-align:center;color:#a16207;padding:20px; font-weight: 900;">캐릭터를 선택하면 정보가 표시됩니다</div>';
-    infoSection.style.background = 'white';
-    infoSection.style.borderColor = '#fde68a';
-    
-    const settingsArea = document.getElementById('selectedSettings');
-    settingsArea.innerHTML = '<div class="settings-placeholder">캐릭터를 선택하면 설정이 표시됩니다</div>';
-    settingsArea.style.background = 'transparent';
-    settingsArea.style.borderColor = 'transparent';
-    
-    const relationsTitle = document.querySelector('#charactersPage .relations-title');
-    if (relationsTitle) {
-      relationsTitle.style.color = '#92400e';
-      relationsTitle.style.filter = 'none';
-    }
-  }
-  
-  if (selectedRelationChar && selectedRelationChar.id === id) {
-    selectedRelationChar = null;
-    document.getElementById('relationsCharacterName').textContent = '캐릭터를 선택하세요';
-    document.getElementById('relationsContent').innerHTML = '<div class="empty-message" style="padding: 60px 20px;">왼쪽에서 캐릭터를 선택하면<br>관계 정보가 표시됩니다 💕</div>';
-    document.getElementById('relationshipVisualization').innerHTML = '<div class="empty-message" style="padding: 60px 20px;">캐릭터를 선택하면<br>관계도가 표시됩니다 🎨</div>';
-  }
-  
   filterCharacters(currentFilter);
-  
-  if (currentRelationsFilter) {
-    renderRelationsPage(currentRelationsFilter);
+  alert('삭제되었습니다.');
+}
+
+async function saveToLocalStorage() {
+  try {
+    // 1. 로컬 스토리지 저장 (백업용)
+    localStorage.setItem('cookierun_characters', JSON.stringify(characters));
+    debugLog('💾 로컬 저장 완료: ' + characters.length + '개', false);
+    
+    // 2. Firebase 저장
+    if (window.firebaseDB && window.firebaseDoc && window.firebaseSetDoc) {
+      
+      // 메타데이터 저장
+      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
+      await window.firebaseSetDoc(metaDocRef, {
+        totalCharacters: characters.length,
+        lastUpdated: new Date().toISOString(),
+        saveFormat: 'individual_doc' // 저장 방식 구분
+      });
+      
+      // 개별 문서로 분산 저장
+      const savePromises = characters.map(char => {
+        const charDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun_data', `char_${char.id}`);
+        return window.firebaseSetDoc(charDocRef, char);
+      });
+
+      await Promise.all(savePromises);
+      
+      debugLog('✅ Firebase 저장 완료! (개별 문서 방식)', false);
+      console.log('✅ Firebase 저장 완료!');
+    } else {
+      debugLog('⚠️ Firebase 사용 불가, 로컬만 저장', true);
+    }
+  } catch (e) {
+    debugLog('❌ 저장 오류: ' + e.message, true);
+    console.error('❌ 저장 중 오류 발생:', e);
+    alert('저장 중 오류가 발생했습니다.');
+    throw e;
+  }
+}
+
+async function loadFromLocalStorage() {
+  try {
+    debugLog('📂 데이터 불러오는 중...', false);
+    
+    if (window.firebaseDB && window.firebaseDoc && window.firebaseGetDoc) {
+      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
+      const metaSnap = await window.firebaseGetDoc(metaDocRef);
+      
+      if (metaSnap.exists()) {
+        const metadata = metaSnap.data();
+        
+        if (metadata.saveFormat === 'individual_doc') {
+            const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js");
+            const querySnapshot = await getDocs(collection(window.firebaseDB, "cookierun_data"));
+            
+            characters = [];
+            querySnapshot.forEach((doc) => {
+                characters.push(doc.data());
+            });
+            console.log('✅ Firebase 데이터 로드 완료 (개별 문서): ' + characters.length + '개');
+
+        } else {
+            const totalChunks = metadata.totalChunks || 0;
+            characters = [];
+            for (let i = 0; i < totalChunks; i++) {
+                const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
+                const chunkSnap = await window.firebaseGetDoc(chunkDocRef);
+                if (chunkSnap.exists()) {
+                    const chunkData = chunkSnap.data();
+                    characters = characters.concat(chunkData.characters || []);
+                }
+            }
+            console.log('✅ Firebase 데이터 로드 완료 (청크): ' + characters.length + '개');
+        }
+      }
+    }
+    
+    if (characters.length === 0) {
+      const stored = localStorage.getItem('cookierun_characters');
+      if (stored) {
+        characters = JSON.parse(stored);
+        debugLog('📦 로컬스토리지에서 로드: ' + characters.length + '개', false);
+      }
+    }
+
+  } catch (e) {
+    debugLog('❌ 로드 오류: ' + e.message, true);
+    console.error('❌ 데이터 로드 중 오류:', e);
+    const stored = localStorage.getItem('cookierun_characters');
+    if (stored) characters = JSON.parse(stored);
   }
 }
 
@@ -3542,28 +3602,38 @@ function renderRelationships(char, gameData) {
     return;
   }
   
-  const relationshipCards = char.relations.map(rel => `
+const relationshipCards = char.relations.map((rel, relIndex) => {  // relIndex 추가
+  const targetColor = rel.targetColor || '#fb923c';
+  
+  return `
     <div class="relationship-card" 
-      onmouseover="this.style.boxShadow='0 4px 12px ${color}40';" 
-      onmouseout="this.style.boxShadow='none';"
-      style="border-color: ${color}; background: linear-gradient(135deg, ${color}08 0%, ${color}05 100%);">
-      <div class="relationship-header" style="border-bottom-color: ${color};">
-        <div class="relationship-target-photo" style="background: ${rel.targetColor || 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)'}; border-color: ${rel.targetColor || '#fb923c'};">
+      onmouseover="this.style.boxShadow='0 8px 24px ${targetColor}50';" 
+      onmouseout="this.style.boxShadow='0 4px 12px ${targetColor}30';"
+      style="position: relative; background: linear-gradient(135deg, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.3) : targetColor + '20'} 0%, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.2) : targetColor + '10'} 100%); 
+             border-color: ${targetColor}; box-shadow: 0 4px 12px ${targetColor}30;">
+      
+      <button class="relationship-delete-btn" onclick="deleteRelation(event, ${char.id}, ${relIndex})">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <div class="relationship-header" style="border-bottom-color: ${targetColor};">
+        <div class="relationship-target-photo" style="background: ${targetColor}; border-color: ${targetColor};">
           ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🍪'}
         </div>
         <div class="relationship-target-info">
-          <div class="relationship-target-name" style="color: ${color}; filter: brightness(0.7);">${rel.targetName}</div>
-          <div class="relationship-type-badge" style="border-color: ${color}; color: ${color}; filter: brightness(0.8);">
+          <div class="relationship-target-name" style="color: ${targetColor}; filter: brightness(0.7);">${rel.targetName}</div>
+          <div class="relationship-type-badge" style="border-color: ${targetColor}; color: ${targetColor}; background: white;">
             ${getRelationIcon(rel.relationType)} ${rel.relationType}
           </div>
         </div>
       </div>
-      <div class="relationship-comment" style="border-color: ${color}; background: ${color}10; color: ${color}; filter: brightness(0.6);">
+      <div class="relationship-comment" style="border-color: ${targetColor}; background: ${targetColor}white; color: ${targetColor};">
         ${rel.comment}
       </div>
     </div>
-  `).join('');
-  
+  `;
+}).join('');  
+
   content.innerHTML = `
     <button class="add-relation-btn" onclick="openRelationModal(${char.id})">
       <i class="fa-solid fa-plus"></i>
@@ -3575,10 +3645,10 @@ function renderRelationships(char, gameData) {
 
 function renderRelationshipVisualization(char, gameData) {
   const container = document.getElementById('relationshipVisualization');
-  const color = gameData.color || '#fb923c';
+  const mainColor = gameData.color || '#fb923c'; 
   
   if (!char.relations || char.relations.length === 0) {
-    container.innerHTML = '<div class="empty-message" style="padding: 60px 20px;">아직 설정된 관계가 없습니다<br>관계를 추가해보세요! 💕</div>';
+    container.innerHTML = '<div class="empty-message" style="padding: 60px 20px; font-weight:700; color: #666; display:flex; align-items:center; justify-content:center; height:100%;">아직 설정된 관계가 없습니다<br>관계를 추가해보세요! 💕</div>';
     return;
   }
   
@@ -3588,56 +3658,125 @@ function renderRelationshipVisualization(char, gameData) {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: ${color};
-      border-color: ${color};
-    ">
-      ${gameData.photo ? `<img src="${gameData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🍪'}
+      width: 140px; 
+      height: 140px;
+      background: ${mainColor};
+      border: 6px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      z-index: 20; 
+      overflow: hidden;
+      transition: all 0.3s;
+    "
+    onmouseover="this.style.transform='translate(-50%, -50%) scale(1.05)'"
+    onmouseout="this.style.transform='translate(-50%, -50%) scale(1)'"
+    >
+      ${gameData.photo ? `<img src="${gameData.photo}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:50px;">🍪</div>'}
     </div>
   `;
   
   const angleStep = (2 * Math.PI) / char.relations.length;
-  const radius = 120;
+  const radiusPx = 300; 
   
   const relationNodes = char.relations.map((rel, index) => {
     const angle = angleStep * index - Math.PI / 2;
-    const x = 50 + radius * Math.cos(angle);
-    const y = 50 + radius * Math.sin(angle);
     
-    const lineAngle = Math.atan2(y - 50, x - 50) * 180 / Math.PI;
-    const lineLength = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(y - 50, 2)) - 40;
+    const xOffset = radiusPx * Math.cos(angle);
+    const yOffset = radiusPx * Math.sin(angle);
+    
+    const labelX = (radiusPx / 2) * Math.cos(angle);
+    const labelY = (radiusPx / 2) * Math.sin(angle);
+    
+    const lineAngle = angle * 180 / Math.PI;
+    const targetColor = rel.targetColor || '#fb923c';
+    const icon = getRelationIcon ? getRelationIcon(rel.relationType) : '❤️';
     
     return `
       <div class="relation-line" style="
-        left: 50%;
-        top: 50%;
-        width: ${lineLength}px;
-        transform: rotate(${lineAngle}deg);
-        background: linear-gradient(90deg, ${color}, ${color}40);
-      "></div>
-      <div class="relation-node" style="
         position: absolute;
-        top: ${y}%;
-        left: ${x}%;
+        top: 50%;
+        left: 50%;
+        width: ${radiusPx}px;
+        height: 6px;
+        background: ${targetColor};
+        transform-origin: left center;
+        transform: rotate(${lineAngle}deg);
+        z-index: 1;
+        opacity: 0.7;
+        box-shadow: 0 0 8px ${targetColor}40;
+        pointer-events: none;
+      "></div>
+
+      <div class="relation-label" style="
+        position: absolute;
+        top: calc(50% + ${labelY}px);
+        left: calc(50% + ${labelX}px);
         transform: translate(-50%, -50%);
-        background: ${rel.targetColor || 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)'};
-        border-color: ${rel.targetColor || '#fb923c'};
+        background: white;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: ${targetColor};
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: 3px solid ${targetColor};
+        z-index: 15;
       ">
-        ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🍪'}
-        <div class="relation-label" style="border-color: ${color}; color: ${color};">${getRelationIcon(rel.relationType)} ${rel.relationType}</div>
+          ${icon} ${rel.relationType}
+      </div>
+
+      <div class="relation-node-wrapper" style="
+        position: absolute;
+        top: calc(50% + ${yOffset}px);
+        left: calc(50% + ${xOffset}px);
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+      "
+      onmouseover="this.style.transform='translate(-50%, -50%) scale(1.1)'; this.style.zIndex='30';"
+      onmouseout="this.style.transform='translate(-50%, -50%) scale(1)'; this.style.zIndex='10';"
+      onclick="selectCharacter(${rel.targetId}, 'ovenbreak')" 
+      >
+        <div style="
+          width: 110px;
+          height: 110px;
+          background: #fff;
+          border: 5px solid ${targetColor};
+          border-radius: 50%;
+          overflow: hidden;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        ">
+          ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:35px;">🍪</div>'}
+        </div>
       </div>
     `;
   }).join('');
   
   container.innerHTML = `
-    <div class="relation-graph">
-      <div class="relation-nodes-container">
+    <div class="relation-graph" style="
+        position: relative; 
+        width: 100%; 
+        height: 100%; 
+        min-height: 800px;
+        overflow: visible;
+        background: radial-gradient(circle, #fffbeb 0%, transparent 85%); 
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    ">
+      <div class="relation-nodes-container" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;">
         ${centerNode}
         ${relationNodes}
       </div>
     </div>
   `;
 }
-
 
 let currentRelationCharId = null;
 
@@ -3691,10 +3830,11 @@ async function addRelation() {
     return;
   }
   
-  const currentChar = characters.find(c => c.id === currentRelationCharId);
+  // 배열에서 인덱스 찾기
+  const currentCharIndex = characters.findIndex(c => c.id === currentRelationCharId);
   const targetChar = characters.find(c => c.id === targetId);
   
-  if (!currentChar || !targetChar) {
+  if (currentCharIndex === -1 || !targetChar) {
     alert('캐릭터를 찾을 수 없습니다!');
     return;
   }
@@ -3713,11 +3853,12 @@ async function addRelation() {
     targetPhoto = targetChar.tower.photo;
   }
   
-  if (!currentChar.relations) {
-    currentChar.relations = [];
+  // 인덱스로 직접 접근하여 수정
+  if (!characters[currentCharIndex].relations) {
+    characters[currentCharIndex].relations = [];
   }
   
-  currentChar.relations.push({
+  characters[currentCharIndex].relations.push({
     targetId: targetChar.id,
     targetName: targetChar.name,
     targetColor: targetColor,
@@ -3726,15 +3867,28 @@ async function addRelation() {
     comment: comment
   });
   
-await saveToLocalStorage();
-
-  if (selectedRelationChar && selectedRelationChar.id === currentRelationCharId) {
-    const displayGame = selectedRelationChar.displayGame;
-    const gameData = currentChar[displayGame];
-    
-    renderRelationships(currentChar, gameData);
-    renderRelationshipVisualization(currentChar, gameData);
+  // 저장 전에 로그 출력
+  console.log('💾 관계 저장 시도:', characters[currentCharIndex].name, '→', targetChar.name);
+  
+  try {
+    await saveToLocalStorage();
+    console.log('✅ 관계 저장 성공!');
+  } catch (error) {
+    console.error('❌ 관계 저장 실패:', error);
+    alert('저장 중 오류가 발생했습니다: ' + error.message);
+    return;
   }
+
+if (selectedRelationChar && selectedRelationChar.id === currentRelationCharId) {
+    const currentChar = characters.find(c => c.id === currentRelationCharId);
+    if (currentChar) {
+      const displayGame = selectedRelationChar.displayGame;
+      const gameData = currentChar[displayGame];
+      
+      renderRelationships(currentChar, gameData);
+      renderRelationshipVisualization(currentChar, gameData);
+    }
+}
   
   closeRelationModal();
   
@@ -3859,6 +4013,25 @@ document.addEventListener('click', function(e) {
   }
 });
 
+async function deleteRelation(event, charId, relationIndex) {
+  event.stopPropagation();
+  
+  const charIndex = characters.findIndex(c => c.id === charId);
+  if (charIndex === -1) return;
+  
+  characters[charIndex].relations.splice(relationIndex, 1);
+  
+  await saveToLocalStorage();
+  
+  if (selectedRelationChar && selectedRelationChar.id === charId) {
+    const char = characters[charIndex];
+    const gameData = char[selectedRelationChar.displayGame];
+    
+    renderRelationships(char, gameData);
+    renderRelationshipVisualization(char, gameData);
+  }
+}
+
 function addSwipeIndicator() {
   if (window.innerWidth > 768) return;
   
@@ -3929,16 +4102,29 @@ function setupRealtimeSync() {
   }
   
   try {
-    const docRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'shared_data');
+    // metadata 문서를 감시
+    const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
     
-    const unsubscribe = window.firebaseOnSnapshot(docRef, 
-      (doc) => {
+    const unsubscribe = window.firebaseOnSnapshot(metaDocRef, 
+      async (doc) => {
         try {
           if (doc.exists()) {
-            const data = doc.data();
-            const newCharacters = data.characters || [];
+            const metadata = doc.data();
+            const totalChunks = metadata.totalChunks || 0;
             
-            debugLog('📥 Firebase 데이터 수신: ' + newCharacters.length + '개', false);
+            // 모든 청크 로드
+            let newCharacters = [];
+            for (let i = 0; i < totalChunks; i++) {
+              const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
+              const chunkSnap = await window.firebaseGetDoc(chunkDocRef);
+              
+              if (chunkSnap.exists()) {
+                const chunkData = chunkSnap.data();
+                newCharacters = newCharacters.concat(chunkData.characters || []);
+              }
+            }
+            
+            debugLog('🔥 Firebase 데이터 수신: ' + newCharacters.length + '개', false);
             
             const currentData = JSON.stringify(characters);
             const newData = JSON.stringify(newCharacters);
@@ -3946,7 +4132,7 @@ function setupRealtimeSync() {
             if (currentData !== newData) {
               debugLog('🔄 데이터 변경 감지, 업데이트 중...', false);
               
-              console.log('📥 새 데이터 수신:', newCharacters.length + '개');
+              console.log('🔥 새 데이터 수신:', newCharacters.length + '개');
               characters = newCharacters;
               
               localStorage.setItem('cookierun_characters', JSON.stringify(characters));
@@ -4213,8 +4399,6 @@ function setOriginFilter(filter) {
   
   filterCharacters(currentFilter);
 }
-
-
 
 </script>
 </body>
