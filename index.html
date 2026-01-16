@@ -727,6 +727,15 @@ input[type="color"]:hover {
   margin-right: 2px;
 }
 
+#selectedCombinedInfo {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#selectedCombinedInfo::-webkit-scrollbar {
+  display: none;
+}
+
 .modal-overlay {
   display: none;
   position: fixed;
@@ -2069,7 +2078,7 @@ window.saveToFirebase = async function(data) {
 <div class="sidebar-relations">
   <div class="relations-title">캐릭터 정보</div>
   
-  <div id="selectedCombinedInfo" style="flex: 1; overflow-y: auto; padding: 0 10px 10px; cursor: pointer;" onclick="toggleSidebarInfo()">
+  <div id="selectedCombinedInfo" style="flex: 1; overflow-y: auto; padding: 0 5px 5px; cursor: pointer;" onclick="toggleSidebarInfo()">
     <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 정보가 표시됩니다</div>
   </div>
 </div>
