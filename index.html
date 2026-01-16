@@ -1181,7 +1181,7 @@ input[type="color"]:hover {
   border-radius: 10px;
   padding: 15px;
   color: #92400e;
-  font-size: 0.9rem;
+  font-size: 1.0rem;
   line-height: 1.6;
   font-weight: 600;
   border: 2px solid #fde68a;
@@ -3255,7 +3255,7 @@ if (infoArea.dataset.currentMode === 'background') {
   const relationsTitle = document.querySelector('.relations-title');
   if (relationsTitle) {
     relationsTitle.style.color = color;
-    relationsTitle.style.filter = 'brightness(0.7)';
+    relationsTitle.style.color = darkenColor(color, 0.7); 
     relationsTitle.style.position = 'relative';
 
     if (infoArea.dataset.currentMode === 'background') {
@@ -3280,7 +3280,7 @@ if (infoArea.dataset.currentMode === 'background') {
       border-radius: 50%;
       background: white;
       border: 2px solid ${color};
-      color: ;
+      color: ${color};
       display: flex;
       align-items: center;
       justify-content: center;
