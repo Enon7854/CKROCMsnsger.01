@@ -248,7 +248,7 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap; 
+  flex-wrap: nowrap; 
   justify-content: flex-start;
   align-content: flex-start;
   gap: 20px;
@@ -385,8 +385,10 @@ body {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  width: 420px;
   max-width: 420px;
-  min-width: 320px;
+  min-width: 420px;
+  flex-shrink: 0;
   display: flex;
   overflow: visible;
   align-self: flex-start;
@@ -1048,6 +1050,7 @@ input[type="color"]:hover {
   background: white;
   border: 2px solid #fde68a;
   border-radius: 10px;
+  width: 280px;
   padding: 10px;
   margin-bottom: 2px;
   cursor: pointer;
