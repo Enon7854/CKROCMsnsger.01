@@ -3032,10 +3032,10 @@ return `
       </div>
       <div class="relation-char-info">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-          <div class="relation-char-name" style="color: ${color};">${char.name}</div>
+          <div class="relation-char-name" style="color: ${color}; filter: brightness(0.7);">${char.name}</div>
           <div class="char-card-badge grade-${firstGame.data.grade}" style="font-size: 0.7rem; padding: 3px 8px;">${firstGame.data.grade}</div>
         </div>
-        <div class="relation-char-game">${games.map(g => g.name).join(' / ')}</div>
+        <div class="relation-char-game" style="color: ${color}; filter: brightness(0.7);">${games.map(g => g.name).join(' / ')}</div>
       </div>
     </div>
   `;
