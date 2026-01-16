@@ -1868,38 +1868,44 @@ input[type="color"]:hover {
 </head>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAhHY5rckvvfQoI0znLrXEQe4iutvhZzek",
-  authDomain: "ckocmanarge3234.firebaseapp.com",
-  projectId: "ckocmanarge3234",
-  storageBucket: "ckocmanarge3234.firebasestorage.app",
-  messagingSenderId: "462191633540",
-  appId: "1:462191633540:web:e0341340081cafa0a2ced1"
-};
-try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhHY5rckvvfQoI0znLrXEQe4iutvhZzek",
+    authDomain: "ckocmanarge3234.firebaseapp.com",
+    databaseURL: "https://ckocmanarge3234-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ckocmanarge3234",
+    storageBucket: "ckocmanarge3234.firebasestorage.app",
+    messagingSenderId: "462191633540",
+    appId: "1:462191633540:web:e0341340081cafa0a2ced1"
+  };
+
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  
-  window.firebaseDB = db;
-  window.firebaseDoc = doc;
-  window.firebaseSetDoc = setDoc;
-  window.firebaseGetDoc = getDoc;
-  window.firebaseOnSnapshot = onSnapshot;
-  window.firebaseReady = true;
-  
-  window.dispatchEvent(new Event('firebaseReady'));
-} catch (error) {
-  console.error('❌ Firebase 초기화 실패:', error);
-  window.firebaseReady = false;
-  window.dispatchEvent(new Event('firebaseReady'));
-  alert('Firebase 연결 실패! 로컬 모드로 실행됩니다.');
-}
+const db = getDatabase(app);
 
-</script>
-<body>
+  window.loadFromFirebase = async function() {
+    try {
+      const { ref, get, child } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+      const snapshot = await get(child(ref(db), 'characters'));
+      return snapshot.exists() ? snapshot.val() : null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+  
+window.saveToFirebase = async function(data) {
+    try {
+      await set(ref(db, 'characters'), data);
+      console.log("✅ Firebase 전송 완료");
+      return true;
+    } catch (error) {
+      console.error("❌ Firebase 전송 에러:", error);
+      throw error;
+    }
+  };
+</script><body>
 
 <div id="loginScreen" style="
   position: fixed;
@@ -2574,54 +2580,65 @@ function darkenColor(color, amount = 0.6) {
 
 async function saveToLocalStorage() {
   try {
-    localStorage.setItem('cookierun_characters', JSON.stringify(characters));
+    // 1. 일단 로컬 브라우저에 저장 (데이터 유실 방지)
+    localStorage.setItem('characters', JSON.stringify(characters));
     
-    debugLog('💾 로컬 저장 완료: ' + characters.length + '개', false);
-    
-if (window.firebaseDB && window.firebaseDoc && window.firebaseSetDoc) {
-  const CHUNK_SIZE = characters.length > 100 ? 1 : (characters.length > 50 ? 2 : 3);
-  const chunks = [];
-      
-      for (let i = 0; i < characters.length; i += CHUNK_SIZE) {
-        chunks.push(characters.slice(i, i + CHUNK_SIZE));
-      }
-      
-      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
-      await window.firebaseSetDoc(metaDocRef, {
-        totalCharacters: characters.length,
-        totalChunks: chunks.length,
-        lastUpdated: new Date().toISOString()
-      });
-      
-      for (let i = 0; i < chunks.length; i++) {
-        const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
-        await window.firebaseSetDoc(chunkDocRef, {
-          characters: chunks[i],
-          chunkIndex: i,
-          lastUpdated: new Date().toISOString()
-        });
-      }
-      
-      try {
-        const oldDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'shared_data');
-        await window.firebaseSetDoc(oldDocRef, { deprecated: true, message: '새로운 청크 방식으로 마이그레이션됨' });
-      } catch (e) {
-        // 무시
-      }
-      
-      debugLog('✅ Firebase 저장 완료! (' + characters.length + '개, ' + chunks.length + '개 청크)', false);
-      console.log('✅ Firebase 저장 완료! (' + characters.length + '개, ' + chunks.length + '개 청크)');
+    // 2. Firebase 함수가 로드될 때까지 최대 1초간 대기
+    let checkCount = 0;
+    while (typeof window.saveToFirebase !== 'function' && checkCount < 10) {
+      await new Promise(res => setTimeout(res, 100)); // 0.1초씩 대기
+      checkCount++;
+    }
+
+    // 3. Firebase 함수가 있으면 실행
+    if (typeof window.saveToFirebase === 'function') {
+      await window.saveToFirebase(characters);
+      debugLog('✅ Firebase 서버 동기화 완료!', false);
     } else {
-      debugLog('⚠️ Firebase 사용 불가, 로컬만 저장', true);
-      console.log('⚠️ Firebase 사용 불가, 로컬스토리지만 저장');
+      // 끝내 안 불러와졌을 때
+      debugLog('⚠️ Firebase 모듈 로딩 지연, 나중에 다시 저장됩니다.', true);
     }
   } catch (e) {
     debugLog('❌ 저장 오류: ' + e.message, true);
-    console.error('❌ 저장 중 오류 발생:', e);
-    alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
-    throw e;
+    console.error('저장 중 오류 발생:', e);
   }
 }
+
+async function initData() {
+  debugLog('⏳ 데이터 초기화 시작...', false);
+
+  let retry = 0;
+  while (typeof window.loadFromFirebase !== 'function' && retry < 30) {
+    await new Promise(res => setTimeout(res, 100));
+    retry++;
+  }
+
+  try {
+    let serverData = null;
+    if (typeof window.loadFromFirebase === 'function') {
+      serverData = await window.loadFromFirebase();
+    }
+
+    if (serverData) {
+      characters = serverData;
+      debugLog('✅ 서버 데이터 로드 성공', false);
+    } else {
+      const localData = localStorage.getItem('characters');
+      if (localData) {
+        characters = JSON.parse(localData);
+        debugLog('ℹ️ 로컬 데이터 로드 성공', false);
+      }
+    }
+    if (typeof render === 'function') render();
+    
+  } catch (e) {
+    console.error('초기화 오류:', e);
+    debugLog('❌ 초기화 실패: ' + e.message, true);
+  }
+}
+
+
+window.addEventListener('DOMContentLoaded', initData);
 
 function compressImage(file, maxWidth = 300, quality = 0.7) {
   return new Promise((resolve) => {
@@ -3493,94 +3510,51 @@ async function deleteCharacter(event, id) {
   alert('삭제되었습니다.');
 }
 
-async function saveToLocalStorage() {
-  try {
-    // 1. 로컬 스토리지 저장 (백업용)
-    localStorage.setItem('cookierun_characters', JSON.stringify(characters));
-    debugLog('💾 로컬 저장 완료: ' + characters.length + '개', false);
-    
-    // 2. Firebase 저장
-    if (window.firebaseDB && window.firebaseDoc && window.firebaseSetDoc) {
-      
-      // 메타데이터 저장
-      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
-      await window.firebaseSetDoc(metaDocRef, {
-        totalCharacters: characters.length,
-        lastUpdated: new Date().toISOString(),
-        saveFormat: 'individual_doc' // 저장 방식 구분
-      });
-      
-      // 개별 문서로 분산 저장
-      const savePromises = characters.map(char => {
-        const charDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun_data', `char_${char.id}`);
-        return window.firebaseSetDoc(charDocRef, char);
-      });
-
-      await Promise.all(savePromises);
-      
-      debugLog('✅ Firebase 저장 완료! (개별 문서 방식)', false);
-      console.log('✅ Firebase 저장 완료!');
-    } else {
-      debugLog('⚠️ Firebase 사용 불가, 로컬만 저장', true);
-    }
-  } catch (e) {
-    debugLog('❌ 저장 오류: ' + e.message, true);
-    console.error('❌ 저장 중 오류 발생:', e);
-    alert('저장 중 오류가 발생했습니다.');
-    throw e;
-  }
-}
-
 async function loadFromLocalStorage() {
   try {
     debugLog('📂 데이터 불러오는 중...', false);
     
-    if (window.firebaseDB && window.firebaseDoc && window.firebaseGetDoc) {
-      const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
-      const metaSnap = await window.firebaseGetDoc(metaDocRef);
-      
-      if (metaSnap.exists()) {
-        const metadata = metaSnap.data();
-        
-        if (metadata.saveFormat === 'individual_doc') {
-            const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js");
-            const querySnapshot = await getDocs(collection(window.firebaseDB, "cookierun_data"));
-            
-            characters = [];
-            querySnapshot.forEach((doc) => {
-                characters.push(doc.data());
-            });
-            console.log('✅ Firebase 데이터 로드 완료 (개별 문서): ' + characters.length + '개');
+    // 1. Firebase 함수가 로딩될 때까지 잠시 대기
+    let retry = 0;
+    while (typeof window.loadFromFirebase !== 'function' && retry < 10) {
+      await new Promise(res => setTimeout(res, 100));
+      retry++;
+    }
 
-        } else {
-            const totalChunks = metadata.totalChunks || 0;
-            characters = [];
-            for (let i = 0; i < totalChunks; i++) {
-                const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
-                const chunkSnap = await window.firebaseGetDoc(chunkDocRef);
-                if (chunkSnap.exists()) {
-                    const chunkData = chunkSnap.data();
-                    characters = characters.concat(chunkData.characters || []);
-                }
-            }
-            console.log('✅ Firebase 데이터 로드 완료 (청크): ' + characters.length + '개');
-        }
+    // 2. Firebase에서 데이터 가져오기 시도
+    let serverData = null;
+    if (typeof window.loadFromFirebase === 'function') {
+      try {
+        serverData = await window.loadFromFirebase();
+      } catch(err) {
+        console.error("Firebase 로드 실패:", err);
       }
     }
-    
-    if (characters.length === 0) {
-      const stored = localStorage.getItem('cookierun_characters');
-      if (stored) {
-        characters = JSON.parse(stored);
-        debugLog('📦 로컬스토리지에서 로드: ' + characters.length + '개', false);
+
+    // 3. 데이터 적용 (서버 데이터 우선, 없으면 로컬 데이터)
+    if (serverData) {
+      characters = serverData;
+      debugLog('✅ 서버 데이터 로드 성공: ' + characters.length + '개', false);
+    } else {
+      // 서버 데이터가 없으면 로컬 스토리지 확인
+      const localData = localStorage.getItem('characters');
+      // 혹시 이전 버전 이름으로 저장된게 있는지 확인
+      const oldData = localStorage.getItem('cookierun_characters'); 
+      
+      if (localData) {
+        characters = JSON.parse(localData);
+        debugLog('📦 로컬 데이터 로드: ' + characters.length + '개', false);
+      } else if (oldData) {
+        characters = JSON.parse(oldData);
+        debugLog('📦 백업 데이터 로드: ' + characters.length + '개', false);
+      } else {
+        debugLog('ℹ️ 저장된 데이터가 없습니다.', false);
       }
     }
 
   } catch (e) {
     debugLog('❌ 로드 오류: ' + e.message, true);
-    console.error('❌ 데이터 로드 중 오류:', e);
-    const stored = localStorage.getItem('cookierun_characters');
-    if (stored) characters = JSON.parse(stored);
+    console.error('데이터 로드 중 오류:', e);
   }
 }
 
