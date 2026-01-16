@@ -165,6 +165,18 @@ body {
   padding: 0 25px 25px;
 }
 
+.sidebar-content-page {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.sidebar-content-page.active {
+  display: flex;
+  flex-direction: column;
+}
+
 .relations-title {
   font-size: 1.2rem;
   font-weight: 800;
@@ -342,13 +354,24 @@ body {
   padding: 20px;
   min-height: 400px;
   border: 2px solid #fde68a;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#characterList {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+  align-items: flex-start
 }
 
 .empty-message {
   text-align: center;
   color: #a16207;
   padding: 40px;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   line-height: 1.8;
 }
 
@@ -358,13 +381,16 @@ body {
   border-radius: 20px;
   padding: 5px;
   margin-bottom: 12px;
-  margin-right: 25px;
+  margin-right: 0;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  width: 420px;
+  max-width: 420px;
+  min-width: 320px;
   display: flex;
   overflow: visible;
+  align-self: flex-start;
+  height: auto;
 }
 
 .character-card:hover {
@@ -1584,13 +1610,15 @@ input[type="color"]:hover {
   align-items: center;
 }
   
-.list-section {
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  width: 100%;
-}
+  .list-section {
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
   
 .add-character-btn {
   margin: 15px;
@@ -1602,30 +1630,44 @@ input[type="color"]:hover {
 
   .character-list {
     padding: 15px 10px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    flex-wrap: wrap;
-    scroll-snap-type: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scroll-snap-type: x mandatory;
     gap: 15px;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    -webkit-overflow-scrolling: touch;
   }
 
   .character-card {
-    width: calc(100% - 20px);
-    max-width: 280px;
+    width: 280px;
     min-width: 280px;
+    max-width: 280px;
     flex-shrink: 0;
     scroll-snap-align: center;
-    margin: 0 auto 15px auto;
+    margin: 0 7px;
     flex-direction: column;
     display: flex;
     padding: 10px;
     overflow: hidden;
     box-sizing: border-box;
+  }
+  
+  #characterList {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 15px;
+    padding: 15px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    width: auto;
   }
   
 .char-card-content {
@@ -1881,10 +1923,12 @@ input[type="color"]:hover {
     appId: "1:462191633540:web:e0341340081cafa0a2ced1"
   };
 
-  const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-  window.loadFromFirebase = async function() {
+window.firebaseReady = true;
+
+window.loadFromFirebase = async function() {
     try {
       const { ref, get, child } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
       const snapshot = await get(child(ref(db), 'characters'));
@@ -1905,7 +1949,15 @@ window.saveToFirebase = async function(data) {
       throw error;
     }
   };
-</script><body>
+
+  import { onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  
+  window.firebaseDB = db;
+  window.firebaseOnValue = onValue;
+  window.firebaseRef = ref;
+
+</script>
+<body>
 
 <div id="loginScreen" style="
   position: fixed;
@@ -2014,13 +2066,14 @@ window.saveToFirebase = async function(data) {
       </div>
     </div>
 
-    <div class="sidebar-relations">
-      <div class="relations-title">캐릭터 설정</div>
-      <div id="selectedSettings">
-  <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 정보가 표시됩니다</div>
-      </div>
-    </div>
+<div class="sidebar-relations">
+  <div class="relations-title">캐릭터 정보</div>
+  
+  <div id="selectedCombinedInfo" style="flex: 1; overflow-y: auto; padding: 0 10px 10px; cursor: pointer;" onclick="toggleSidebarInfo()">
+    <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 정보가 표시됩니다</div>
   </div>
+</div>
+</div>
 
   <div class="main-card">
 <div class="card-header">
@@ -2465,9 +2518,11 @@ window.checkPassword = async function() {
     sessionStorage.setItem('authenticated', 'true');
     
     debugLog('🔐 비밀번호 인증 성공', false);
-    
-    if (!window.firebaseReady) {
-      debugLog('⏳ Firebase 준비 대기 중...', false);
+
+debugLog('🔧 Firebase 초기화 확인 중...', false);
+await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 대기
+
+if (!window.firebaseReady) {
       
       let waitCount = 0;
       const waitInterval = setInterval(() => {
@@ -2580,22 +2635,18 @@ function darkenColor(color, amount = 0.6) {
 
 async function saveToLocalStorage() {
   try {
-    // 1. 일단 로컬 브라우저에 저장 (데이터 유실 방지)
     localStorage.setItem('characters', JSON.stringify(characters));
     
-    // 2. Firebase 함수가 로드될 때까지 최대 1초간 대기
     let checkCount = 0;
     while (typeof window.saveToFirebase !== 'function' && checkCount < 10) {
       await new Promise(res => setTimeout(res, 100)); // 0.1초씩 대기
       checkCount++;
     }
 
-    // 3. Firebase 함수가 있으면 실행
     if (typeof window.saveToFirebase === 'function') {
       await window.saveToFirebase(characters);
       debugLog('✅ Firebase 서버 동기화 완료!', false);
     } else {
-      // 끝내 안 불러와졌을 때
       debugLog('⚠️ Firebase 모듈 로딩 지연, 나중에 다시 저장됩니다.', true);
     }
   } catch (e) {
@@ -2950,7 +3001,12 @@ function renderCardInfo(game, data, color) {
 function switchCardGame(event, charId, game) {
   event.stopPropagation();
   cardDisplayGame[charId] = game;
+  
   filterCharacters(currentFilter);
+  
+  if (selectedChar && selectedChar.id === charId) {
+    selectCharacter(charId, game);
+  }
 }
 
 
@@ -3018,17 +3074,13 @@ function selectCharacter(id, game) {
       : `${color}20`;
     sidebarHeader.style.borderBottomColor = color;
 
-    // 5. [신규] 동그란 편집 버튼 생성 및 추가
     const editBtn = document.createElement('button');
     editBtn.className = 'sidebar-edit-btn';
     editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
     editBtn.title = '정보 및 사진 수정';
     
-    // 색상 적용
     editBtn.style.borderColor = color;
     editBtn.style.color = color;
-    
-    // 호버 효과를 위한 이벤트
     editBtn.onmouseenter = function() {
       this.style.background = color;
       this.style.color = 'white';
@@ -3038,7 +3090,6 @@ function selectCharacter(id, game) {
       this.style.color = color;
     };
     
-    // 클릭 이벤트
     editBtn.onclick = function(e) {
       e.stopPropagation(); // 이벤트 버블링 방지
       openEditCharacterModal(selectedChar.id, game);
@@ -3064,7 +3115,7 @@ function selectCharacter(id, game) {
       : `${color}25`;
   }
   
-  updateSettingsArea(char, gameData);
+  updateCombinedInfoArea(char, gameData);
 }
 
 function renderSidebarInfo(game, data) {
@@ -3164,43 +3215,119 @@ let infoContent = '';
   return infoContent;
 }
 
-function updateSettingsArea(char, gameData) {
-  const settingsArea = document.getElementById('selectedSettings');
+function updateCombinedInfoArea(char, gameData) {
+  const infoArea = document.getElementById('selectedCombinedInfo');
   const color = gameData.color || '#fb923c';
   
-  settingsArea.innerHTML = char.characterSettings 
-    ? `<div class="settings-content">${formatText(char.characterSettings)}</div>`
-    : `<div class="settings-placeholder">더블클릭하여 캐릭터 설정을 작성하세요...</div>`;
+  if (!infoArea.dataset.currentMode) {
+    infoArea.dataset.currentMode = 'background';
+  }
   
-  settingsArea.className = 'settings-editable-area';
-  settingsArea.ondblclick = () => openEditSettingsModal(char.id);
-  settingsArea.style.background = `${color}08`;
-  settingsArea.style.borderColor = color;
+  let content = '';
+
+if (infoArea.dataset.currentMode === 'background') {
+  if (char.characterSettings) {
+    content = `<div class="settings-content" style="color: ${color};">${formatText(char.characterSettings)}</div>`;
+  } else {
+    content = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 쿠키 배경을 작성하세요...</div>`;
+  }
+} else {
+  if (char.characterAbilities) {
+    content = `<div class="settings-content" style="color: ${color};">${formatText(char.characterAbilities)}</div>`;
+  } else {
+    content = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 캐릭터 설정을 작성하세요...</div>`;
+  }
+}
   
-  settingsArea.onmouseenter = function() {
+  infoArea.innerHTML = content;
+  infoArea.style.background = `${color}08`;
+  infoArea.style.borderRadius = '12px';
+  infoArea.style.padding = '15px';
+  infoArea.style.transition = 'all 0.2s';
+  
+  infoArea.onmouseenter = function() {
     this.style.background = `${color}15`;
   };
-  settingsArea.onmouseleave = function() {
+  infoArea.onmouseleave = function() {
     this.style.background = `${color}08`;
   };
   
-  const settingsContent = settingsArea.querySelector('.settings-content');
-  if (settingsContent) {
-    settingsContent.style.color = color;
-    settingsContent.style.filter = 'brightness(0.6)';
-  }
-  
-  const settingsPlaceholder = settingsArea.querySelector('.settings-placeholder');
-  if (settingsPlaceholder) {
-    settingsPlaceholder.style.color = color;
-    settingsPlaceholder.style.filter = 'brightness(0.7)';
-  }
-  
-  const relationsTitle = document.querySelector('#charactersPage .relations-title');
+  const relationsTitle = document.querySelector('.relations-title');
   if (relationsTitle) {
     relationsTitle.style.color = color;
     relationsTitle.style.filter = 'brightness(0.7)';
+    relationsTitle.style.position = 'relative';
+
+    if (infoArea.dataset.currentMode === 'background') {
+      relationsTitle.textContent = '쿠키 배경';
+    } else {
+      relationsTitle.textContent = '캐릭터 설정';
+    }
+    
+    const existingBtn = relationsTitle.querySelector('.info-edit-btn');
+    if (existingBtn) existingBtn.remove();
+    
+    const editBtn = document.createElement('button');
+    editBtn.className = 'info-edit-btn';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    editBtn.style.cssText = `
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid ${color};
+      color: ;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    `;
+    
+    editBtn.onmouseenter = function() {
+      this.style.background = color;
+      this.style.color = 'white';
+    };
+    editBtn.onmouseleave = function() {
+      this.style.background = 'white';
+      this.style.color = color;
+    };
+    
+    editBtn.onclick = function(e) {
+      e.stopPropagation();
+      if (infoArea.dataset.currentMode === 'background') {
+        openEditBackgroundModal(selectedChar.id);
+      } else {
+        openEditAbilitiesModal(selectedChar.id);
+      }
+    };
+    
+    relationsTitle.appendChild(editBtn);
   }
+}
+
+function toggleSidebarInfo() {
+  if (!selectedChar) {
+    alert('먼저 캐릭터를 선택해주세요!');
+    return;
+  }
+  
+  const infoArea = document.getElementById('selectedCombinedInfo');
+  const char = characters.find(c => c.id === selectedChar.id);
+  const gameData = char[selectedChar.displayGame];
+  
+  if (infoArea.dataset.currentMode === 'background') {
+    infoArea.dataset.currentMode = 'abilities';
+  } else {
+    infoArea.dataset.currentMode = 'background';
+  }
+  
+  updateCombinedInfoArea(char, gameData);
 }
 
 function selectRelationCharacter(id, event) {
@@ -3253,7 +3380,6 @@ function openModal() {
   document.querySelectorAll('.btn-create').forEach(btn => btn.textContent = '추가');
   document.querySelector('.modal-title').innerHTML = '🍪 새 쿠키 추가';
   
-  // 오븐브레이크 폼 초기화
   document.getElementById('charNameModal').value = '';
   document.getElementById('gradeModal').value = '커먼';
   document.getElementById('petModal').value = '';
@@ -3268,7 +3394,6 @@ function openModal() {
   preview.src = '';
   preview.parentElement.querySelector('span').style.display = 'flex';
   
-  // 킹덤 폼 초기화
   document.getElementById('charNameKingdom').value = '';
   document.getElementById('gradeKingdom').value = '커먼';
   document.getElementById('typeKingdom').value = '돌격형';
@@ -3276,14 +3401,13 @@ function openModal() {
   document.getElementById('elementKingdom').value = '불';
   document.getElementById('skillNameKingdom').value = '';
   document.getElementById('traitKingdom').value = '';
-  document.getElementById('charColorKingdom').value = '#fb923c'; // 이 줄 추가!
+  document.getElementById('charColorKingdom').value = '#fb923c';
   
   const previewKingdom = document.getElementById('createPhotoPreviewKingdom');
   previewKingdom.style.display = 'none';
   previewKingdom.src = '';
   previewKingdom.parentElement.querySelector('span').style.display = 'flex';
   
-  // 타워 폼 초기화
   document.getElementById('charNameTower').value = '';
   document.getElementById('gradeTower').value = '커먼';
   document.getElementById('roleTower').value = '스트라이커';
@@ -3291,7 +3415,7 @@ function openModal() {
   document.getElementById('elementTower').value = '물';
   document.getElementById('skillNameTower').value = '';
   document.getElementById('artifactTower').value = '';
-  document.getElementById('charColorTower').value = '#fb923c'; // 이 줄 추가!
+  document.getElementById('charColorTower').value = '#fb923c';
   
   const previewTower = document.getElementById('createPhotoPreviewTower');
   previewTower.style.display = 'none';
@@ -3514,14 +3638,12 @@ async function loadFromLocalStorage() {
   try {
     debugLog('📂 데이터 불러오는 중...', false);
     
-    // 1. Firebase 함수가 로딩될 때까지 잠시 대기
     let retry = 0;
     while (typeof window.loadFromFirebase !== 'function' && retry < 10) {
       await new Promise(res => setTimeout(res, 100));
       retry++;
     }
 
-    // 2. Firebase에서 데이터 가져오기 시도
     let serverData = null;
     if (typeof window.loadFromFirebase === 'function') {
       try {
@@ -3531,14 +3653,11 @@ async function loadFromLocalStorage() {
       }
     }
 
-    // 3. 데이터 적용 (서버 데이터 우선, 없으면 로컬 데이터)
     if (serverData) {
       characters = serverData;
       debugLog('✅ 서버 데이터 로드 성공: ' + characters.length + '개', false);
     } else {
-      // 서버 데이터가 없으면 로컬 스토리지 확인
       const localData = localStorage.getItem('characters');
-      // 혹시 이전 버전 이름으로 저장된게 있는지 확인
       const oldData = localStorage.getItem('cookierun_characters'); 
       
       if (localData) {
@@ -3556,6 +3675,58 @@ async function loadFromLocalStorage() {
     debugLog('❌ 로드 오류: ' + e.message, true);
     console.error('데이터 로드 중 오류:', e);
   }
+}
+
+function switchSidebarTab(tab) {
+  document.querySelectorAll('.sidebar-tab-btn').forEach(btn => btn.classList.remove('active'));
+  
+  document.querySelectorAll('.sidebar-content-page').forEach(page => page.classList.remove('active'));
+  
+  if (tab === 'background') {
+    document.querySelectorAll('.sidebar-tab-btn')[0].classList.add('active');
+    document.getElementById('sidebarBackgroundPage').classList.add('active');
+  } else if (tab === 'settings') {
+    document.querySelectorAll('.sidebar-tab-btn')[1].classList.add('active');
+    document.getElementById('sidebarSettingsPage').classList.add('active');
+  }
+}
+
+function openEditFromSidebar() {
+  if (!selectedChar) {
+    alert('먼저 캐릭터를 선택해주세요!');
+    return;
+  }
+  
+  openEditCharacterInfoModal(selectedChar.id);
+}
+
+function insertFormattingBg(prefix, suffix) {
+  const textarea = document.getElementById('editCharacterSettings');
+  insertTextFormat(textarea, prefix, suffix);
+}
+
+function insertFormattingAb(prefix, suffix) {
+  const textarea = document.getElementById('editCharacterAbilities');
+  insertTextFormat(textarea, prefix, suffix);
+}
+
+function insertTextFormat(textarea, prefix, suffix) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  const beforeText = textarea.value.substring(0, start);
+  const afterText = textarea.value.substring(end);
+  
+  if (selectedText) {
+    textarea.value = beforeText + prefix + selectedText + suffix + afterText;
+    textarea.selectionStart = start + prefix.length;
+    textarea.selectionEnd = end + prefix.length;
+  } else {
+    textarea.value = beforeText + prefix + suffix + afterText;
+    textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+  }
+  
+  textarea.focus();
 }
 
 function renderRelationships(char, gameData) {
@@ -3576,7 +3747,7 @@ function renderRelationships(char, gameData) {
     return;
   }
   
-const relationshipCards = char.relations.map((rel, relIndex) => {  // relIndex 추가
+const relationshipCards = char.relations.map((rel, relIndex) => {
   const targetColor = rel.targetColor || '#fb923c';
   
   return `
@@ -3804,7 +3975,6 @@ async function addRelation() {
     return;
   }
   
-  // 배열에서 인덱스 찾기
   const currentCharIndex = characters.findIndex(c => c.id === currentRelationCharId);
   const targetChar = characters.find(c => c.id === targetId);
   
@@ -3827,7 +3997,6 @@ async function addRelation() {
     targetPhoto = targetChar.tower.photo;
   }
   
-  // 인덱스로 직접 접근하여 수정
   if (!characters[currentCharIndex].relations) {
     characters[currentCharIndex].relations = [];
   }
@@ -3841,7 +4010,6 @@ async function addRelation() {
     comment: comment
   });
   
-  // 저장 전에 로그 출력
   console.log('💾 관계 저장 시도:', characters[currentCharIndex].name, '→', targetChar.name);
   
   try {
@@ -3937,6 +4105,124 @@ function openEditSettingsModal(charId) {
   document.body.style.overflow = 'hidden';
 }
 
+function openEditBackgroundModal(charId) {
+  currentEditCharId = charId;
+  const char = characters.find(c => c.id === charId);
+  if (!char) return;
+  
+  document.getElementById('editSettingsCharName').textContent = char.name;
+  
+  const formHTML = `
+    <div class="form-group">
+      <label style="display: flex; align-items: center; font-size: 0.85rem; font-weight: 700; color: #a16207; margin-bottom: 10px;">
+        🍪 쿠키 배경
+        <div class="format-help">
+          <div class="format-help-icon">?</div>
+          <div class="format-help-tooltip">
+            <div class="format-help-tooltip-title">📝 사용 가능한 서식</div>
+            <div class="format-help-item"><code>**굵게**</code> - 굵은 글씨</div>
+            <div class="format-help-item"><code>*기울임*</code> - 기울임 글씨</div>
+            <div class="format-help-item"><code>__밑줄__</code> - 밑줄</div>
+            <div class="format-help-item"><code>~~취소선~~</code> - 취소선</div>
+            <div class="format-help-item"><code># 제목</code> - 큰 제목</div>
+            <div class="format-help-item"><code>- 목록</code> - 목록 항목</div>
+            <div class="format-help-item"><code>> 인용</code> - 인용문</div>
+          </div>
+        </div>
+      </label>
+      
+      <div class="text-editor-toolbar">
+        <button type="button" class="editor-btn" onclick="insertFormatting('**', '**')" title="굵게">
+          <i class="fa-solid fa-bold"></i> 굵게
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('*', '*')" title="기울임">
+          <i class="fa-solid fa-italic"></i> 기울임
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('__', '__')" title="밑줄">
+          <i class="fa-solid fa-underline"></i> 밑줄
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('~~', '~~')" title="취소선">
+          <i class="fa-solid fa-strikethrough"></i> 취소선
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('# ', '')" title="제목">
+          <i class="fa-solid fa-heading"></i> 제목
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('- ', '')" title="목록">
+          <i class="fa-solid fa-list"></i> 목록
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('> ', '')" title="인용">
+          <i class="fa-solid fa-quote-left"></i> 인용
+        </button>
+      </div>
+      
+      <textarea id="editCharacterSettings" class="editor-textarea" placeholder="캐릭터의 배경 스토리, 탄생 비화 등을 자유롭게 작성하세요...">${char.characterSettings || ''}</textarea>
+    </div>
+  `;
+  
+  document.getElementById('editSettingsBody').innerHTML = formHTML;
+  document.getElementById('modalEditSettings').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function openEditAbilitiesModal(charId) {
+  currentEditCharId = charId;
+  const char = characters.find(c => c.id === charId);
+  if (!char) return;
+  
+  document.getElementById('editSettingsCharName').textContent = char.name;
+  
+  const formHTML = `
+    <div class="form-group">
+      <label style="display: flex; align-items: center; font-size: 0.85rem; font-weight: 700; color: #a16207; margin-bottom: 10px;">
+        ⚙️ 캐릭터 설정
+        <div class="format-help">
+          <div class="format-help-icon">?</div>
+          <div class="format-help-tooltip">
+            <div class="format-help-tooltip-title">📝 사용 가능한 서식</div>
+            <div class="format-help-item"><code>**굵게**</code> - 굵은 글씨</div>
+            <div class="format-help-item"><code>*기울임*</code> - 기울임 글씨</div>
+            <div class="format-help-item"><code>__밑줄__</code> - 밑줄</div>
+            <div class="format-help-item"><code>~~취소선~~</code> - 취소선</div>
+            <div class="format-help-item"><code># 제목</code> - 큰 제목</div>
+            <div class="format-help-item"><code>- 목록</code> - 목록 항목</div>
+            <div class="format-help-item"><code>> 인용</code> - 인용문</div>
+          </div>
+        </div>
+      </label>
+      
+      <div class="text-editor-toolbar">
+        <button type="button" class="editor-btn" onclick="insertFormatting('**', '**')" title="굵게">
+          <i class="fa-solid fa-bold"></i> 굵게
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('*', '*')" title="기울임">
+          <i class="fa-solid fa-italic"></i> 기울임
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('__', '__')" title="밑줄">
+          <i class="fa-solid fa-underline"></i> 밑줄
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('~~', '~~')" title="취소선">
+          <i class="fa-solid fa-strikethrough"></i> 취소선
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('# ', '')" title="제목">
+          <i class="fa-solid fa-heading"></i> 제목
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('- ', '')" title="목록">
+          <i class="fa-solid fa-list"></i> 목록
+        </button>
+        <button type="button" class="editor-btn" onclick="insertFormatting('> ', '')" title="인용">
+          <i class="fa-solid fa-quote-left"></i> 인용
+        </button>
+      </div>
+      
+      <textarea id="editCharacterAbilities" class="editor-textarea" placeholder="캐릭터의 성격, 능력, 특징 등을 자유롭게 작성하세요...">${char.characterAbilities || ''}</textarea>
+    </div>
+  `;
+  
+  document.getElementById('editSettingsBody').innerHTML = formHTML;
+  document.getElementById('modalEditSettings').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
 function closeEditSettingsModal() {
   document.getElementById('modalEditSettings').classList.remove('active');
   document.body.style.overflow = '';
@@ -3947,13 +4233,25 @@ async function saveSettings() {
   const char = characters.find(c => c.id === currentEditCharId);
   if (!char) return;
   
-  char.characterSettings = document.getElementById('editCharacterSettings').value;
+  const backgroundTextarea = document.getElementById('editCharacterSettings');
+  const abilitiesTextarea = document.getElementById('editCharacterAbilities');
+  
+  if (backgroundTextarea) {
+    char.characterSettings = backgroundTextarea.value;
+  }
+  
+  if (abilitiesTextarea) {
+    char.characterAbilities = abilitiesTextarea.value;
+  }
   
   await saveToLocalStorage();
   
   if (selectedChar && selectedChar.id === currentEditCharId) {
     const gameData = char[selectedChar.displayGame];
-    updateSettingsArea(char, gameData);
+const infoArea = document.getElementById('selectedCombinedInfo');
+infoArea.dataset.currentMode = 'background';
+
+updateCombinedInfoArea(char, gameData);
   }
   
   closeEditSettingsModal();
@@ -4068,7 +4366,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 function setupRealtimeSync() {
-  if (!window.firebaseReady || !window.firebaseDB || !window.firebaseDoc || !window.firebaseOnSnapshot) {
+  if (!window.firebaseReady) {
     console.log('⏳ Firebase 준비 중... 3초 후 재시도');
     debugLog('⏳ Firebase 준비 중... 3초 후 재시도', false);
     setTimeout(setupRealtimeSync, 3000);
@@ -4076,27 +4374,13 @@ function setupRealtimeSync() {
   }
   
   try {
-    // metadata 문서를 감시
-    const metaDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', 'metadata');
+    const charactersRef = window.firebaseRef(window.firebaseDB, 'characters');
     
-    const unsubscribe = window.firebaseOnSnapshot(metaDocRef, 
-      async (doc) => {
+    const unsubscribe = window.firebaseOnValue(charactersRef, 
+      (snapshot) => {
         try {
-          if (doc.exists()) {
-            const metadata = doc.data();
-            const totalChunks = metadata.totalChunks || 0;
-            
-            // 모든 청크 로드
-            let newCharacters = [];
-            for (let i = 0; i < totalChunks; i++) {
-              const chunkDocRef = window.firebaseDoc(window.firebaseDB, 'cookierun', `chunk_${i}`);
-              const chunkSnap = await window.firebaseGetDoc(chunkDocRef);
-              
-              if (chunkSnap.exists()) {
-                const chunkData = chunkSnap.data();
-                newCharacters = newCharacters.concat(chunkData.characters || []);
-              }
-            }
+          if (snapshot.exists()) {
+            const newCharacters = snapshot.val();
             
             debugLog('🔥 Firebase 데이터 수신: ' + newCharacters.length + '개', false);
             
@@ -4373,6 +4657,8 @@ function setOriginFilter(filter) {
   
   filterCharacters(currentFilter);
 }
+
+
 
 </script>
 </body>
