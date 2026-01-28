@@ -79,7 +79,7 @@ body {
 }
 
 .sidebar-card {
-  width: 320px;
+  width: 350px;
   background: white;
   border-radius: 25px;
   box-shadow: 0 8px 24px rgba(146, 64, 14, 0.15);
@@ -87,6 +87,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   border: 3px solid #fbbf24;
+  position: relative;  /* 이 줄 추가 */
 }
 
 
@@ -256,6 +257,7 @@ body {
 
 .main-card {
   flex: 1;
+  width: 350;
   background: white;
   border-radius: 25px;
   box-shadow: 0 8px 24px rgba(146, 64, 14, 0.15);
@@ -493,7 +495,7 @@ body {
 }
 
 .grade-슈퍼에픽 {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  background: linear-gradient(135deg, #f3856c 0%, #b219e5 100%);
   box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);
 }
 
@@ -501,6 +503,21 @@ body {
   background: linear-gradient(135deg, #79f0b8 0%, #79daf0 25%, #79a3f0 50%, #9179f0 75%, #dc79f0 100%);
   box-shadow: 0 2px 6px rgba(255, 215, 0, 0.5);
   animation: rainbow-glow 3s ease-in-out infinite;
+}
+
+.grade-비스트 {
+  background: linear-gradient(135deg, #fe5783 0%, #960c15 100%);
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3);
+}
+
+.grade-에이션트 {
+  background: linear-gradient(135deg, #af47f4 0%, #671cc4 100%);
+  box-shadow: 0 2px 6px rgba(78, 205, 196, 0.3);
+}
+
+.grade-위치 {
+  background: linear-gradient(135deg, #ee43d7 0%, #a70f98 100%);
+  box-shadow: 0 2px 6px rgba(155, 89, 182, 0.3);
 }
 
 .char-card-info {
@@ -1918,6 +1935,88 @@ input[type="color"]:hover {
   color: white;
 }
 
+/* 사이드바 페이지 컨테이너 */
+.sidebar-page-container {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-page-container.active {
+  display: flex;
+}
+
+/* 사이드바 네비게이션 버튼 */
+.sidebar-nav-buttons {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  right: 15px;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.sidebar-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--current-char-color, #fb923c);
+  color: var(--current-char-color, #fb923c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.3);
+  transition: all 0.3s;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.sidebar-card:hover .sidebar-nav-btn {
+  opacity: 1;
+}
+
+.sidebar-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--current-char-color, #fb923c);
+  color: var(--current-char-color, #fb923c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--current-char-color, #fb923c) 30%, transparent);
+  transition: all 0.3s;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.sidebar-card:hover .sidebar-nav-btn {
+  opacity: 1;
+}
+
+.sidebar-nav-btn:hover {
+  background: var(--current-char-color, #fb923c);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--current-char-color, #fb923c) 50%, transparent);
+}
+
+.sidebar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 </style>
 </head>
 
@@ -2058,7 +2157,9 @@ window.saveToFirebase = async function(data) {
 </div>  </div>
 
 <div id="charactersPage" class="page active layout">
-  <div class="sidebar-card">
+<div class="sidebar-card">
+  <!-- 페이지 1: 정보 + 쿠키배경 -->
+  <div id="sidebarPage1" class="sidebar-page-container active">
     <div class="sidebar-header">
       <div class="character-photo-box" id="selectedPhoto">
         🍪
@@ -2078,13 +2179,35 @@ window.saveToFirebase = async function(data) {
       </div>
     </div>
 
-<div class="sidebar-relations">
-  <div class="relations-title">캐릭터 정보</div>
-  
-  <div id="selectedCombinedInfo" style="flex: 1; overflow-y: auto; padding: 0 5px 5px; cursor: pointer;" onclick="toggleSidebarInfo()">
-    <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 정보가 표시됩니다</div>
+    <div class="sidebar-relations">
+      <div class="relations-title">쿠키 배경</div>
+      
+      <div id="selectedCombinedInfo" style="flex: 1; overflow-y: auto; padding: 0 5px 5px;">
+        <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 정보가 표시됩니다</div>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- 페이지 2: 캐릭터 설정 -->
+  <div id="sidebarPage2" class="sidebar-page-container">
+    <div class="sidebar-relations" style="padding-top: 25px;">
+      <div class="relations-title">캐릭터 설정</div>
+      
+      <div id="selectedCharacterAbilities" style="flex: 1; overflow-y: auto; padding: 0 5px 5px;">
+        <div style="text-align:center;color:#a16207;padding:20px;font-weight:700;">캐릭터를 선택하면 설정이 표시됩니다</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 좌우 네비게이션 버튼 -->
+  <div class="sidebar-nav-buttons">
+    <button class="sidebar-nav-btn sidebar-nav-left" onclick="switchSidebarPage(1)" title="정보 & 쿠키배경">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button class="sidebar-nav-btn sidebar-nav-right" onclick="switchSidebarPage(2)" title="캐릭터 설정">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
 </div>
 
   <div class="main-card">
@@ -2289,6 +2412,9 @@ window.saveToFirebase = async function(data) {
                   <option>에픽</option>
                   <option>슈퍼에픽</option>
                   <option>레전더리</option>
+                  <option>비스트</option>
+                  <option>에이션트</option>
+                  <option>위치</option>
                 </select>
               </div>
               <div class="form-group">
@@ -2795,6 +2921,9 @@ let filteredCharacters = characters.filter(char => {
     else if (filter === 'kingdom') gameMatch = char.kingdom;
     else if (filter === 'tower') gameMatch = char.tower;
     
+    if (gameMatch && filter !== 'all') {
+      cardDisplayGame[char.id] = filter;
+    }
 
     let originMatch = true;
     const isOfficial = char.isOfficial === true; // 데이터에 저장된 값 확인
@@ -3061,14 +3190,11 @@ function selectCharacter(id, game) {
   const gameData = char[game];
   const color = gameData.color || '#fb923c';
   
-  // 1. 기존 사이드바 헤더 가져오기
   const sidebarHeader = document.querySelector('#charactersPage .sidebar-header');
   
-  // 2. [신규] 기존에 있던 편집 버튼 제거 (중복 방지)
   const existingBtn = sidebarHeader.querySelector('.sidebar-edit-btn');
   if (existingBtn) existingBtn.remove();
   
-  // 3. 사진 박스 업데이트
   const photoBox = document.getElementById('selectedPhoto');
   if (gameData.photo) {
     photoBox.innerHTML = `<img src="${gameData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
@@ -3079,7 +3205,6 @@ function selectCharacter(id, game) {
   photoBox.style.borderColor = gameData.color;
   photoBox.style.boxShadow = `0 4px 12px ${gameData.color}50`;
   
-  // 4. 헤더 스타일 업데이트
   if (sidebarHeader) {
     sidebarHeader.style.background = isLightColor(color) 
       ? `linear-gradient(135deg, ${darkenColor(color, 0.2)} 0%, ${darkenColor(color, 0.15)} 100%)`
@@ -3103,7 +3228,7 @@ function selectCharacter(id, game) {
     };
     
     editBtn.onclick = function(e) {
-      e.stopPropagation(); // 이벤트 버블링 방지
+      e.stopPropagation();
       openEditCharacterModal(selectedChar.id, game);
     };
     
@@ -3112,7 +3237,7 @@ function selectCharacter(id, game) {
   
   const sidebarCard = document.querySelector('#charactersPage .sidebar-card');
   if (sidebarCard) {
-    sidebarCard.style.borderColor = color;
+    sidebarCard.style.setProperty('--current-char-color', color);
   }
   
   const infoSection = document.getElementById('selectedInfoSection');
@@ -3229,33 +3354,26 @@ let infoContent = '';
 
 function updateCombinedInfoArea(char, gameData) {
   const infoArea = document.getElementById('selectedCombinedInfo');
+  const abilitiesArea = document.getElementById('selectedCharacterAbilities');
   const color = gameData.color || '#fb923c';
   
-  if (!infoArea.dataset.currentMode) {
-    infoArea.dataset.currentMode = 'background';
-  }
-  
-  let content = '';
-
-if (infoArea.dataset.currentMode === 'background') {
+  // 쿠키 배경 영역 업데이트
+  let backgroundContent = '';
   if (char.characterSettings) {
-    content = `<div class="settings-content" style="color: ${color};">${formatText(char.characterSettings)}</div>`;
+    backgroundContent = `<div class="settings-content" style="color: ${color};">${formatText(char.characterSettings)}</div>`;
   } else {
-    content = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 쿠키 배경을 작성하세요...</div>`;
+    backgroundContent = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 쿠키 배경을 작성하세요...</div>`;
   }
-} else {
-  if (char.characterAbilities) {
-    content = `<div class="settings-content" style="color: ${color};">${formatText(char.characterAbilities)}</div>`;
-  } else {
-    content = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 캐릭터 설정을 작성하세요...</div>`;
-  }
-}
   
-  infoArea.innerHTML = content;
+  infoArea.innerHTML = backgroundContent;
   infoArea.style.background = `${color}08`;
   infoArea.style.borderRadius = '12px';
   infoArea.style.padding = '15px';
-  infoArea.style.transition = 'all 0.2s';
+  infoArea.style.cursor = 'pointer';
+  
+  infoArea.onclick = function() {
+    openEditBackgroundModal(char.id);
+  };
   
   infoArea.onmouseenter = function() {
     this.style.background = `${color}15`;
@@ -3264,17 +3382,36 @@ if (infoArea.dataset.currentMode === 'background') {
     this.style.background = `${color}08`;
   };
   
-  const relationsTitle = document.querySelector('.relations-title');
+  // 캐릭터 설정 영역 업데이트
+  let abilitiesContent = '';
+  if (char.characterAbilities) {
+    abilitiesContent = `<div class="settings-content" style="color: ${color};">${formatText(char.characterAbilities)}</div>`;
+  } else {
+    abilitiesContent = `<div class="settings-placeholder" style="text-align:center; padding: 40px 20px; color: ${color}; filter: brightness(0.7);">클릭하여 캐릭터 설정을 작성하세요...</div>`;
+  }
+  
+  abilitiesArea.innerHTML = abilitiesContent;
+  abilitiesArea.style.background = `${color}08`;
+  abilitiesArea.style.borderRadius = '12px';
+  abilitiesArea.style.padding = '15px';
+  abilitiesArea.style.cursor = 'pointer';
+  
+  abilitiesArea.onclick = function() {
+    openEditAbilitiesModal(char.id);
+  };
+  
+  abilitiesArea.onmouseenter = function() {
+    this.style.background = `${color}15`;
+  };
+  abilitiesArea.onmouseleave = function() {
+    this.style.background = `${color}08`;
+  };
+  
+  // 쿠키 배경 제목 스타일링
+  const relationsTitle = document.querySelector('#sidebarPage1 .relations-title');
   if (relationsTitle) {
-    relationsTitle.style.color = color;
-    relationsTitle.style.color = darkenColor(color, 0.7); 
-    relationsTitle.style.position = 'relative';
-
-    if (infoArea.dataset.currentMode === 'background') {
-      relationsTitle.textContent = '쿠키 배경';
-    } else {
-      relationsTitle.textContent = '캐릭터 설정';
-    }
+    relationsTitle.style.color = darkenColor(color, 0.7);
+    relationsTitle.textContent = '쿠키 배경';
     
     const existingBtn = relationsTitle.querySelector('.info-edit-btn');
     if (existingBtn) existingBtn.remove();
@@ -3312,34 +3449,61 @@ if (infoArea.dataset.currentMode === 'background') {
     
     editBtn.onclick = function(e) {
       e.stopPropagation();
-      if (infoArea.dataset.currentMode === 'background') {
-        openEditBackgroundModal(selectedChar.id);
-      } else {
-        openEditAbilitiesModal(selectedChar.id);
-      }
+      openEditBackgroundModal(selectedChar.id);
     };
     
+    relationsTitle.style.position = 'relative';
     relationsTitle.appendChild(editBtn);
   }
-}
-
-function toggleSidebarInfo() {
-  if (!selectedChar) {
-    alert('먼저 캐릭터를 선택해주세요!');
-    return;
+  
+  // 캐릭터 설정 제목 스타일링
+  const abilitiesTitle = document.querySelector('#sidebarPage2 .relations-title');
+  if (abilitiesTitle) {
+    abilitiesTitle.style.color = darkenColor(color, 0.7);
+    abilitiesTitle.textContent = '캐릭터 설정';
+    
+    const existingBtn2 = abilitiesTitle.querySelector('.info-edit-btn');
+    if (existingBtn2) existingBtn2.remove();
+    
+    const editBtn2 = document.createElement('button');
+    editBtn2.className = 'info-edit-btn';
+    editBtn2.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    editBtn2.style.cssText = `
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid ${color};
+      color: ${color};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    `;
+    
+    editBtn2.onmouseenter = function() {
+      this.style.background = color;
+      this.style.color = 'white';
+    };
+    editBtn2.onmouseleave = function() {
+      this.style.background = 'white';
+      this.style.color = color;
+    };
+    
+    editBtn2.onclick = function(e) {
+      e.stopPropagation();
+      openEditAbilitiesModal(selectedChar.id);
+    };
+    
+    abilitiesTitle.style.position = 'relative';
+    abilitiesTitle.appendChild(editBtn2);
   }
-  
-  const infoArea = document.getElementById('selectedCombinedInfo');
-  const char = characters.find(c => c.id === selectedChar.id);
-  const gameData = char[selectedChar.displayGame];
-  
-  if (infoArea.dataset.currentMode === 'background') {
-    infoArea.dataset.currentMode = 'abilities';
-  } else {
-    infoArea.dataset.currentMode = 'background';
-  }
-  
-  updateCombinedInfoArea(char, gameData);
 }
 
 function selectRelationCharacter(id, event) {
@@ -3746,50 +3910,44 @@ function renderRelationships(char, gameData) {
   const color = gameData.color || '#fb923c';
   
   if (!char.relations || char.relations.length === 0) {
-    content.innerHTML = `
-      <button class="add-relation-btn" onclick="openRelationModal(${char.id})">
-        <i class="fa-solid fa-plus"></i>
-        관계 추가하기
-      </button>
-      <div class="empty-message" style="padding: 40px 20px;">
-        아직 설정된 관계가 없습니다<br>
-        관계를 추가해보세요! 💕
-      </div>
-    `;
     return;
   }
   
-const relationshipCards = char.relations.map((rel, relIndex) => {
-  const targetColor = rel.targetColor || '#fb923c';
-  
-  return `
-    <div class="relationship-card" 
-      onmouseover="this.style.boxShadow='0 8px 24px ${targetColor}50';" 
-      onmouseout="this.style.boxShadow='0 4px 12px ${targetColor}30';"
-      style="position: relative; background: linear-gradient(135deg, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.3) : targetColor + '20'} 0%, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.2) : targetColor + '10'} 100%); 
-             border-color: ${targetColor}; box-shadow: 0 4px 12px ${targetColor}30;">
-      
-      <button class="relationship-delete-btn" onclick="deleteRelation(event, ${char.id}, ${relIndex})">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      
-      <div class="relationship-header" style="border-bottom-color: ${targetColor};">
-        <div class="relationship-target-photo" style="background: ${targetColor}; border-color: ${targetColor};">
-          ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🍪'}
-        </div>
-        <div class="relationship-target-info">
-          <div class="relationship-target-name" style="color: ${targetColor}; filter: brightness(0.7);">${rel.targetName}</div>
-          <div class="relationship-type-badge" style="border-color: ${targetColor}; color: ${targetColor}; background: white;">
-            ${getRelationIcon(rel.relationType)} ${rel.relationType}
+  const relationshipCards = char.relations.map((rel, relIndex) => {
+    const targetColor = rel.targetColor || '#fb923c';
+    
+    const darkTextColor = darkenColor(targetColor, 0.7); 
+    
+    return `
+      <div class="relationship-card" 
+        onmouseover="this.style.boxShadow='0 8px 24px ${targetColor}50';" 
+        onmouseout="this.style.boxShadow='0 4px 12px ${targetColor}30';"
+        style="position: relative; background: linear-gradient(135deg, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.3) : targetColor + '20'} 0%, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.2) : targetColor + '10'} 100%); 
+               border-color: ${targetColor}; box-shadow: 0 4px 12px ${targetColor}30;">
+        
+        <button class="relationship-delete-btn" onclick="deleteRelation(event, ${char.id}, ${relIndex})">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        
+        <div class="relationship-header" style="border-bottom-color: ${targetColor};">
+          <div class="relationship-target-photo" style="background: ${targetColor}; border-color: ${targetColor};">
+            ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🍪'}
+          </div>
+          <div class="relationship-target-info">
+            <div class="relationship-target-name" style="color: ${darkTextColor};">${rel.targetName}</div>
+            
+            <div class="relationship-type-badge" style="border-color: ${targetColor}; color: ${darkTextColor}; background: white;">
+              ${getRelationIcon(rel.relationType)} ${rel.relationType}
+            </div>
           </div>
         </div>
+
+        <div class="relationship-comment" style="border-color: ${targetColor}; background: white; color: ${darkTextColor};">
+          ${rel.comment}
+        </div>
       </div>
-      <div class="relationship-comment" style="border-color: ${targetColor}; background: ${targetColor}white; color: ${targetColor};">
-        ${rel.comment}
-      </div>
-    </div>
-  `;
-}).join('');  
+    `;
+  }).join('');  
 
   content.innerHTML = `
     <button class="add-relation-btn" onclick="openRelationModal(${char.id})">
@@ -3836,16 +3994,18 @@ function renderRelationshipVisualization(char, gameData) {
   const radiusPx = 300; 
   
   const relationNodes = char.relations.map((rel, index) => {
-    const angle = angleStep * index - Math.PI / 2;
-    
+const angle = angleStep * index - Math.PI / 2;
     const xOffset = radiusPx * Math.cos(angle);
     const yOffset = radiusPx * Math.sin(angle);
-    
     const labelX = (radiusPx / 2) * Math.cos(angle);
     const labelY = (radiusPx / 2) * Math.sin(angle);
-    
     const lineAngle = angle * 180 / Math.PI;
+    
     const targetColor = rel.targetColor || '#fb923c';
+    
+    // [추가] 1. 글자용 진한 색상 계산
+    const darkTextColor = darkenColor(targetColor, 0.6); 
+
     const icon = getRelationIcon ? getRelationIcon(rel.relationType) : '❤️';
     
     return `
@@ -3869,12 +4029,12 @@ function renderRelationshipVisualization(char, gameData) {
         top: calc(50% + ${labelY}px);
         left: calc(50% + ${labelX}px);
         transform: translate(-50%, -50%);
-        background: white;
+        background: white; 
         padding: 6px 14px;
         border-radius: 20px;
         font-size: 0.95rem;
         font-weight: 800;
-        color: ${targetColor};
+        color: ${darkTextColor};
         white-space: nowrap;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         border: 3px solid ${targetColor};
@@ -3899,7 +4059,7 @@ function renderRelationshipVisualization(char, gameData) {
       onmouseout="this.style.transform='translate(-50%, -50%) scale(1)'; this.style.zIndex='10';"
       onclick="selectCharacter(${rel.targetId}, 'ovenbreak')" 
       >
-        <div style="
+       <div style="
           width: 110px;
           height: 110px;
           background: #fff;
@@ -4670,7 +4830,22 @@ function setOriginFilter(filter) {
   filterCharacters(currentFilter);
 }
 
+// 사이드바 페이지 전환 함수
+let currentSidebarPage = 1;
 
+function switchSidebarPage(pageNum) {
+  currentSidebarPage = pageNum;
+  
+  document.querySelectorAll('.sidebar-page-container').forEach(page => {
+    page.classList.remove('active');
+  });
+  
+  if (pageNum === 1) {
+    document.getElementById('sidebarPage1').classList.add('active');
+  } else if (pageNum === 2) {
+    document.getElementById('sidebarPage2').classList.add('active');
+  }
+}
 
 </script>
 </body>
