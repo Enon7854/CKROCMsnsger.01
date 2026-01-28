@@ -3909,46 +3909,52 @@ function renderRelationships(char, gameData) {
   const content = document.getElementById('relationsContent');
   const color = gameData.color || '#fb923c';
   
-  if (!char.relations || char.relations.length === 0) {
-    return;
-  }
+  // 수정됨: 관계가 없더라도 "관계 추가 버튼"은 표시해야 하므로 바로 return하지 않고 빈 배열로 처리하거나 초기화 로직을 수행합니다.
+  const relations = char.relations || [];
   
-  const relationshipCards = char.relations.map((rel, relIndex) => {
-    const targetColor = rel.targetColor || '#fb923c';
-    
-    const darkTextColor = darkenColor(targetColor, 0.7); 
-    
-    return `
-      <div class="relationship-card" 
-        onmouseover="this.style.boxShadow='0 8px 24px ${targetColor}50';" 
-        onmouseout="this.style.boxShadow='0 4px 12px ${targetColor}30';"
-        style="position: relative; background: linear-gradient(135deg, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.3) : targetColor + '20'} 0%, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.2) : targetColor + '10'} 100%); 
-               border-color: ${targetColor}; box-shadow: 0 4px 12px ${targetColor}30;">
-        
-        <button class="relationship-delete-btn" onclick="deleteRelation(event, ${char.id}, ${relIndex})">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        
-        <div class="relationship-header" style="border-bottom-color: ${targetColor};">
-          <div class="relationship-target-photo" style="background: ${targetColor}; border-color: ${targetColor};">
-            ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🍪'}
-          </div>
-          <div class="relationship-target-info">
-            <div class="relationship-target-name" style="color: ${darkTextColor};">${rel.targetName}</div>
-            
-            <div class="relationship-type-badge" style="border-color: ${targetColor}; color: ${darkTextColor}; background: white;">
-              ${getRelationIcon(rel.relationType)} ${rel.relationType}
+  let relationshipCards = '';
+
+  if (relations.length > 0) {
+    relationshipCards = relations.map((rel, relIndex) => {
+      const targetColor = rel.targetColor || '#fb923c';
+      const darkTextColor = darkenColor(targetColor, 0.7); 
+      
+      return `
+        <div class="relationship-card" 
+          onmouseover="this.style.boxShadow='0 8px 24px ${targetColor}50';" 
+          onmouseout="this.style.boxShadow='0 4px 12px ${targetColor}30';"
+          style="position: relative; background: linear-gradient(135deg, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.3) : targetColor + '20'} 0%, ${isLightColor(targetColor) ? darkenColor(targetColor, 0.2) : targetColor + '10'} 100%); 
+                 border-color: ${targetColor}; box-shadow: 0 4px 12px ${targetColor}30;">
+          
+          <button class="relationship-delete-btn" onclick="deleteRelation(event, ${char.id}, ${relIndex})">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          
+          <div class="relationship-header" style="border-bottom-color: ${targetColor};">
+            <div class="relationship-target-photo" style="background: ${targetColor}; border-color: ${targetColor};">
+              ${rel.targetPhoto ? `<img src="${rel.targetPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🍪'}
+            </div>
+            <div class="relationship-target-info">
+              <div class="relationship-target-name" style="color: ${darkTextColor};">${rel.targetName}</div>
+              
+              <div class="relationship-type-badge" style="border-color: ${targetColor}; color: ${darkTextColor}; background: white;">
+                ${getRelationIcon(rel.relationType)} ${rel.relationType}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="relationship-comment" style="border-color: ${targetColor}; background: white; color: ${darkTextColor};">
-          ${rel.comment}
+          <div class="relationship-comment" style="border-color: ${targetColor}; background: white; color: ${darkTextColor};">
+            ${rel.comment}
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');  
+      `;
+    }).join('');
+  } else {
+    // 관계가 없을 때 표시할 메시지
+    relationshipCards = `<div class="empty-message" style="padding: 20px; font-size: 0.9rem; color: #a16207;">등록된 관계가 없습니다.<br>새로운 관계를 추가해보세요!</div>`;
+  }
 
+  // 화면 갱신 (관계가 없어도 버튼은 떠야 함)
   content.innerHTML = `
     <button class="add-relation-btn" onclick="openRelationModal(${char.id})">
       <i class="fa-solid fa-plus"></i>
